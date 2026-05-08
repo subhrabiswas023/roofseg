@@ -1,0 +1,43 @@
+# IDE
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+venv/
+.venv/
+env/
+.env/
+
+# Local Secrets
+.env
+.env.*
+
+# Pytest
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Logs and temporary files
+*.log
+*.jsonl
+
+# ML Artifacts
+data/
+models/
+outputs/
+generated/
+runs/
+*.pth
+*.pt
+*.ckpt
+*.onnx
+
+# Os files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,25 @@
+[tool.pytest.ini_options]
+addopts = "-v -s -ra --strict-markers"
+
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
+markers = [
+    "smoke: quick tests for critical features",
+    "unit: tests for individual components",
+    "integration: tests requiring external services",
+    "slow: tests that take significant time",
+]
+
+[tool.pylint.main]
+source-roots = ["src"]
+
+[tool.ruff]
+src = ["src"]
+
+[tool.pyright]
+extraPaths = ["src"]
