@@ -2,11 +2,12 @@ import numpy as np
 
 import pytest
 import torch
+from torch.utils.data import Dataset
 
-from dataset import get_indices, patchify
+from common.data import get_indices, patchify
 
 
-def test_dataset(dataset: torch.utils.data.Dataset):
+def test_dataset(dataset: Dataset):
     image_tensor, mask_tensor = dataset[0]
 
     assert image_tensor.shape == (3, 256, 256)  # C, H, W

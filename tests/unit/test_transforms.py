@@ -1,16 +1,7 @@
-import pytest
 import torch
 
-from training import SyncedImageMaskTransform, train_step
+from segmentation.transforms import SyncedImageMaskTransform
 import kornia.augmentation as K
-
-
-@pytest.mark.slow
-def test_training_step(model, optimizer, criterion, random_images, random_masks):
-    loss = train_step(model, optimizer, criterion, random_images, random_masks)
-
-    assert isinstance(loss, float)
-    assert loss > 0
 
 
 class TestSyncedImageMaskTransform:

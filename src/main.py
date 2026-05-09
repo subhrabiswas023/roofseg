@@ -6,10 +6,14 @@ import torch
 from torch.utils.data import DataLoader
 import kornia.augmentation as K
 
-from config import Config
-from dataset import PatchedDataset
-from model import build_model
-from training import SegmentationModule, Trainer, CombinedLoss, SyncedImageMaskTransform
+from common.training import Trainer
+from segmentation.config import Config
+from segmentation.data import PatchedDataset
+from segmentation.transforms import SyncedImageMaskTransform
+from segmentation.losses import CombinedLoss
+from segmentation.model import build_model
+from segmentation.training import Module
+from segmentation.tracking import Tracker
 
 config = Config(
     seed=42,
@@ -50,7 +54,7 @@ def main():
         color_threshold=config.color_threshold,
         patch_size=config.patch_size,
     )
-    
+
     train_path = Path(config.root_dir) / "train"
     train_image_dir = train_path / config.image_dir
     train_mask_dir = train_path / config.mask_dir
@@ -68,12 +72,18 @@ def main():
     )
 
     train_loader = DataLoader(
-        train_dataset, batch_size=config.batch_size, shuffle=True, pin_memory=(DEVICE.type == "cuda")
+        train_dataset,
+        batch_size=config.batch_size,
+        shuffle=True,
+        pin_memory=(DEVICE.type == "cuda"),
     )
     val_loader = DataLoader(
-        val_dataset, batch_size=config.batch_size, shuffle=False, pin_memory=(DEVICE.type == "cuda")
+        val_dataset,
+        batch_size=config.batch_size,
+        shuffle=False,
+        pin_memory=(DEVICE.type == "cuda"),
     )
-    
+
     # Augmentation setup
     transform = SyncedImageMaskTransform(
         spatial_transform=torch.nn.Sequential(
@@ -86,22 +96,19 @@ def main():
     model = build_model(
         config.encoder_name, config.encoder_weights, config.num_classes
     ).to(DEVICE)
-    
+
     # Training setup
     criterion = CombinedLoss(alpha=config.loss_alpha, mode="multiclass")
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
-    
+
     trainer = Trainer(
-        SegmentationModule(model, criterion, optimizer, DEVICE),
-        transform,
+        Module(model, transform, criterion, optimizer),
+        Tracker(Path("out")),
         DEVICE,
     )
 
-    trainer.fit(
-        train_loader,
-        val_loader,
-        config.num_epochs
-    )
+    trainer.fit(train_loader, val_loader, config.num_epochs)
+
 
 if __name__ == "__main__":
     main()

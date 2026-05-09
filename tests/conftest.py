@@ -7,7 +7,7 @@ from PIL import Image
 
 from dataset import PatchedDataset
 from model import build_model
-from training import CombinedLoss
+from segmentation.training import CombinedLoss
 
 # Some data
 

@@ -9,8 +9,8 @@ import torch
 from torch.utils.data import Dataset
 from PIL import Image
 
-type ImageArray = np.ndarray[tuple[int, int, int], np.dtype[np.float32]]
-type MaskArray = np.ndarray[tuple[int, int], np.dtype[np.int64]]
+from ..common.typing import ImageArray, MaskArray
+from ..common.data import  get_indices, patchify
 
 
 class PatchedDataset(Dataset):
@@ -74,23 +74,4 @@ class PatchedDataset(Dataset):
         return mask
 
 
-def get_indices(
-    idx: int, patches_per_image: int, patches_per_row: int
-) -> tuple[int, int, int]:
-    image_idx, offset = divmod(idx, patches_per_image)
-    row_idx, col_idx = divmod(offset, patches_per_row)  # Row major order
-    return image_idx, row_idx, col_idx
 
-
-def patchify(
-    image: np.ndarray, patch_size: int, row_idx: int, col_idx: int
-) -> np.ndarray:
-    row_start = row_idx * patch_size
-    row_end = row_start + patch_size
-
-    col_start = col_idx * patch_size
-    col_end = col_start + patch_size
-
-    image = image[row_start:row_end, col_start:col_end]
-
-    return image
