@@ -20,6 +20,7 @@ source-roots = ["src"]
 
 [tool.ruff]
 src = ["src"]
+target-version = "py312"
 
 [tool.pyright]
 extraPaths = ["src"]

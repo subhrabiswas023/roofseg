@@ -1,5 +1,6 @@
 """Module for loading and processing the dataset."""
 
+from functools import lru_cache
 from collections.abc import Callable
 from pathlib import Path
 
@@ -9,8 +10,8 @@ import torch
 from torch.utils.data import Dataset
 from PIL import Image
 
-from ..common.typing import ImageArray, MaskArray
-from ..common.data import  get_indices, patchify
+from ..common.typing import RGBArray, GrayscaleArray, RGBTensor, GrayScaleTensor
+from ..common.data import get_indices, patchify
 
 
 class PatchedDataset(Dataset):
@@ -37,7 +38,7 @@ class PatchedDataset(Dataset):
     def __len__(self):
         return self.total_patches
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> tuple[RGBTensor, GrayScaleTensor]:
         image_idx, row_idx, col_idx = get_indices(
             idx, self.patches_per_image, self.patches_per_row
         )
@@ -61,17 +62,16 @@ class PatchedDataset(Dataset):
 
         return image, mask
 
-    def _load_image(self, path: Path) -> ImageArray:
+    @lru_cache(maxsize=1)
+    def _load_image(self, path: Path) -> RGBArray:
         with Image.open(path) as img:
             image = img.convert("RGB")
         image = np.array(image, dtype=np.float32)
         return image
 
-    def _load_mask(self, path: Path) -> MaskArray:
+    @lru_cache(maxsize=1)
+    def _load_mask(self, path: Path) -> GrayscaleArray:
         with Image.open(path) as msk:
             mask = msk.convert("L")
         mask = np.array(mask, dtype=np.int64)
         return mask
-
-
-

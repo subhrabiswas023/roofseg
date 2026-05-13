@@ -6,8 +6,17 @@ import torch
 from torch.utils.data import DataLoader
 import kornia.augmentation as K
 
-from common.training import Trainer
-from segmentation.config import Config
+from common.training import Trainer, Phase
+from segmentation.config import (
+    Config,
+    EnvironmentConfig,
+    DatasetConfig,
+    AugmentationConfig,
+    ModelConfig,
+    CriterionConfig,
+    OptimizerConfig,
+    TrainingConfig,
+)
 from segmentation.data import PatchedDataset
 from segmentation.transforms import SyncedImageMaskTransform
 from segmentation.losses import CombinedLoss
@@ -16,56 +25,57 @@ from segmentation.training import Module
 from segmentation.tracking import Tracker
 
 config = Config(
-    seed=42,
-    device="cuda",
-    root_dir="data",  # currently doesn't exist
-    image_dir="images",
-    mask_dir="masks",
-    image_height=1024,
-    image_width=1024,
-    num_classes=2,
-    color_threshold=128,
-    patch_size=256,
-    horizontal_flip_prob=0.5,
-    vertical_flip_prob=0.5,
-    encoder_name="mobilenet_v2",
-    encoder_weights="imagenet",
-    batch_size=16,
-    num_epochs=10,
-    optimizer="Adam",
-    learning_rate=0.001,
-    criterion="CombinedLoss",
-    loss_alpha=0.5,
+    EnvironmentConfig(seed=42, device="cuda"),
+    DatasetConfig(
+        root_dir="data",  # currently doesn't exist
+        image_dir="images",
+        mask_dir="masks",
+        image_height=1024,
+        image_width=1024,
+        num_classes=2,
+        color_threshold=128,
+        patch_size=256,
+    ),
+    AugmentationConfig(horizontal_flip_prob=0.5, vertical_flip_prob=0.5),
+    ModelConfig(encoder_name="mobilenet_v2", encoder_weights="imagenet"),
+    CriterionConfig(criterion="CombinedLoss", loss_alpha=0.5),
+    OptimizerConfig(optimizer="Adam", learning_rate=0.001),
+    TrainingConfig(batch_size=16, num_epochs=10),
 )
 
 
 def main():
-    # Environment setup
-    torch.manual_seed(config.seed)
-    np.random.seed(config.seed)
+    tracker = Tracker(Path("out"))
 
-    DEVICE = torch.device(config.device)
+    # Saving the config
+    tracker.save_config(config)
+
+    # Environment setup
+    torch.manual_seed(config.environment.seed)
+    np.random.seed(config.environment.seed)
+
+    DEVICE = torch.device(config.environment.device)
 
     # Dataset and dataloader
     DeployableDataset = partial(
         PatchedDataset,
-        image_width=config.image_width,
-        image_height=config.image_height,
-        color_threshold=config.color_threshold,
-        patch_size=config.patch_size,
+        image_width=config.dataset.image_width,
+        image_height=config.dataset.image_height,
+        color_threshold=config.dataset.color_threshold,
+        patch_size=config.dataset.patch_size,
     )
 
-    train_path = Path(config.root_dir) / "train"
-    train_image_dir = train_path / config.image_dir
-    train_mask_dir = train_path / config.mask_dir
+    train_path = Path(config.dataset.root_dir) / Phase.TRAIN
+    train_image_dir = train_path / config.dataset.image_dir
+    train_mask_dir = train_path / config.dataset.mask_dir
     train_dataset = DeployableDataset(
         image_paths=list(train_image_dir.iterdir()),
         get_mask_path_from_image_path=lambda p: train_mask_dir / p.name,
     )
 
-    val_path = Path(config.root_dir) / "val"
-    val_image_dir = val_path / config.image_dir
-    val_mask_dir = val_path / config.mask_dir
+    val_path = Path(config.dataset.root_dir) / Phase.VAL
+    val_image_dir = val_path / config.dataset.image_dir
+    val_mask_dir = val_path / config.dataset.mask_dir
     val_dataset = DeployableDataset(
         image_paths=list(val_image_dir.iterdir()),
         get_mask_path_from_image_path=lambda p: val_mask_dir / p.name,
@@ -73,13 +83,13 @@ def main():
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=config.batch_size,
+        batch_size=config.training.batch_size,
         shuffle=True,
         pin_memory=(DEVICE.type == "cuda"),
     )
     val_loader = DataLoader(
         val_dataset,
-        batch_size=config.batch_size,
+        batch_size=config.training.batch_size,
         shuffle=False,
         pin_memory=(DEVICE.type == "cuda"),
     )
@@ -87,27 +97,29 @@ def main():
     # Augmentation setup
     transform = SyncedImageMaskTransform(
         spatial_transform=torch.nn.Sequential(
-            K.RandomHorizontalFlip(p=config.horizontal_flip_prob),
-            K.RandomVerticalFlip(p=config.vertical_flip_prob),
+            K.RandomHorizontalFlip(p=config.augmentation.horizontal_flip_prob),
+            K.RandomVerticalFlip(p=config.augmentation.vertical_flip_prob),
         )
     ).to(DEVICE)
 
     # Model setup
     model = build_model(
-        config.encoder_name, config.encoder_weights, config.num_classes
+        config.model.encoder_name,
+        config.model.encoder_weights,
+        config.dataset.num_classes,
     ).to(DEVICE)
 
     # Training setup
-    criterion = CombinedLoss(alpha=config.loss_alpha, mode="multiclass")
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
+    criterion = CombinedLoss(alpha=config.criterion.loss_alpha, mode="multiclass")
+    optimizer = torch.optim.Adam(model.parameters(), lr=config.optimizer.learning_rate)
 
     trainer = Trainer(
         Module(model, transform, criterion, optimizer),
-        Tracker(Path("out")),
+        tracker,
         DEVICE,
     )
 
-    trainer.fit(train_loader, val_loader, config.num_epochs)
+    trainer.fit(train_loader, val_loader, config.training.num_epochs)
 
 
 if __name__ == "__main__":
