@@ -5,9 +5,9 @@ import torch
 from pathlib import Path
 from PIL import Image
 
-from dataset import PatchedDataset
-from model import build_model
-from segmentation.training import CombinedLoss
+from roofseg.segmentation.data import PatchedDataset
+from roofseg.segmentation.model import build_model
+from roofseg.segmentation.losses import CombinedLoss
 
 # Some data
 

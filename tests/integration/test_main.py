@@ -5,10 +5,10 @@ import torch
 from torch import nn, optim
 from torch.utils.data import Dataset, DataLoader
 
-from common.training import Trainer
-from segmentation.transforms import SyncedImageMaskTransform
-from segmentation.training import Module
-from segmentation.tracking import Tracker
+from roofseg.common.training import Trainer
+from roofseg.segmentation.transforms import SyncedImageMaskTransform
+from roofseg.segmentation.training import Module
+from roofseg.segmentation.tracking import Tracker
 
 
 def test_main(

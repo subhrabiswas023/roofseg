@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from ..common.typing import Dataclass
+from roofseg.common.typing import Dataclass
 
 
 # Environment parameters

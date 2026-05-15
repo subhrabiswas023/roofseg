@@ -4,7 +4,7 @@ import pytest
 import torch
 from torch.utils.data import Dataset
 
-from common.data import get_indices, patchify
+from roofseg.common.data import get_indices, patchify
 
 
 def test_dataset(dataset: Dataset):

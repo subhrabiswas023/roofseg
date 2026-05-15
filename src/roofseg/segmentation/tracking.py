@@ -4,8 +4,8 @@ from typing import override
 
 import yaml
 
-from ..common import tracking
-from ..common.typing import Dataclass
+from roofseg.common import tracking
+from roofseg.common.typing import Dataclass
     
 class Tracker(tracking.Tracker):
     def __init__(
@@ -16,9 +16,12 @@ class Tracker(tracking.Tracker):
         artifacts_dir_name: str = "artifacts",
     ):
         self.root_dir = root_dir
+        self.root_dir.mkdir(parents=True, exist_ok=True)
+        
         self.config_path = root_dir / config_file_name
         self.metrics_path = root_dir / metrics_file_name
         self._artifacts_path = root_dir / artifacts_dir_name
+        self._artifacts_path.mkdir(parents=True, exist_ok=True)
     
     @property    
     @override

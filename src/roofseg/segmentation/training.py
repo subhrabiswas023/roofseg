@@ -4,10 +4,10 @@ from dataclasses import dataclass
 import torch
 from torch import nn, optim
 
-from ..common import training
-from ..common.typing import Dataclass, BatchedRGBTensor, BatchedGrayscaleTensor
+from roofseg.common import training
+from roofseg.common.typing import Dataclass, BatchedRGBTensor, BatchedGrayscaleTensor
 
-from metrics import ConfusionMatrix
+from roofseg.segmentation.metrics import ConfusionMatrix
 
 @dataclass(frozen=True)
 class BatchMetrics(Dataclass):

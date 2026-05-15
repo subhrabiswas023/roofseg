@@ -38,6 +38,12 @@ runs/
 *.ckpt
 *.onnx
 
+# Build artifacts
+build/
+dist/
+out/
+*.egg-info
+
 # Os files
 .DS_Store
 Thumbs.db

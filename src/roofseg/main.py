@@ -6,8 +6,8 @@ import torch
 from torch.utils.data import DataLoader
 import kornia.augmentation as K
 
-from common.training import Trainer, Phase
-from segmentation.config import (
+from roofseg.common.training import Trainer, Phase
+from roofseg.segmentation.config import (
     Config,
     EnvironmentConfig,
     DatasetConfig,
@@ -17,12 +17,12 @@ from segmentation.config import (
     OptimizerConfig,
     TrainingConfig,
 )
-from segmentation.data import PatchedDataset
-from segmentation.transforms import SyncedImageMaskTransform
-from segmentation.losses import CombinedLoss
-from segmentation.model import build_model
-from segmentation.training import Module
-from segmentation.tracking import Tracker
+from roofseg.segmentation.data import PatchedDataset
+from roofseg.segmentation.transforms import SyncedImageMaskTransform
+from roofseg.segmentation.losses import CombinedLoss
+from roofseg.segmentation.model import build_model
+from roofseg.segmentation.training import Module
+from roofseg.segmentation.tracking import Tracker
 
 config = Config(
     EnvironmentConfig(seed=42, device="cuda"),

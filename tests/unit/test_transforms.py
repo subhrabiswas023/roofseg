@@ -1,6 +1,6 @@
 import torch
 
-from segmentation.transforms import SyncedImageMaskTransform
+from roofseg.segmentation.transforms import SyncedImageMaskTransform
 import kornia.augmentation as K
 
 
