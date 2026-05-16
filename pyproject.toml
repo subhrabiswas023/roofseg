@@ -1,12 +1,34 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "rooftop-segmentation"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Rooftop segmentation research pipeline"
+readme = "README.md"
 requires-python = ">=3.12"
+
+authors=[
+    {name = "Subhra Biswas"}
+]
+
+keywords = [
+    "computer-vision",
+    "segmentation",
+    "deep-learning",
+    "transfer-learning",
+    "research"
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Intended Audience :: Science/Research"
+]
+
+[build-system]
+requires = [
+    "setuptools>=80",
+    "setuptools-scm>=8"
+]
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
