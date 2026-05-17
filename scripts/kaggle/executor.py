@@ -8,8 +8,11 @@ def run_command(*args: str) -> str:
     
     except CalledProcessError as e:
         error_message = (
-            e.stderr.strip()
-            or e.stdout.strip()
+            e.stderr
+            or e.stdout
             or "Unknown command error"
-        )
-        raise RuntimeError(f"Command failed: {' '.join(args)}\n{error_message}") from e
+        ).strip()
+        
+        failed_command = " ".join(map(str, e.cmd))
+        
+        raise RuntimeError(f"Command failed: {failed_command}\n{error_message}") from e
