@@ -3,19 +3,14 @@ import sys
 from pathlib import Path
 
 def build_wheel() -> None:
-    subprocess.run(
-        [sys.executable, "-m", "build", "--wheel"],
-        check=True
-    )
-    
-def get_wheel_path() -> Path:
-    wheels = list(Path("dist").glob("*.whl"))
-    
+    subprocess.run([sys.executable, "-m", "build", "--wheel"], check=True)
+
+
+def get_wheel_path(dist_dir: Path) -> Path:
+    wheels = list(dist_dir.glob("*.whl"))
+
     if not wheels:
         raise RuntimeError("No wheel file was produced")
-    
+
     return wheels[0]
 
-if __name__ == "__main__":
-    build_wheel()
-    print(get_wheel_path())
