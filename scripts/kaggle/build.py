@@ -1,9 +1,10 @@
-import subprocess
 import sys
 from pathlib import Path
 
+from .executor import run_command
+
 def build_wheel() -> None:
-    subprocess.run([sys.executable, "-m", "build", "--wheel"], check=True)
+    print(run_command(sys.executable, "-m", "build", "--wheel"))
 
 
 def get_wheel_path(dist_dir: Path) -> Path:

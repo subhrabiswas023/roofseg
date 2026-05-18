@@ -18,10 +18,10 @@ def write_to_json(data: dict, path: Path):
 
 def validate_repo() -> GitStamp:
     assert_clean_repo()
-    return GitStamp.create()
+    return GitStamp.capture()
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class DeployPaths:
     dist: Path
     dataset: Path
@@ -29,24 +29,24 @@ class DeployPaths:
     kernel_stage: Path
 
 
-def prepare_stage() -> DeployPaths:
+def prepare_stage(root: Path = Path(".")) -> DeployPaths:
     # Cleaning the directories
-    dist_dir = Path("dist")
-    if dist_dir.exists():
-        shutil.rmtree(dist_dir)
-
-    deploy_dir = Path("deploy") / "kaggle"
-    if deploy_dir.exists():
-        shutil.rmtree(deploy_dir)
+    dist_dir = root / "dist"
+    deploy_dir = root / "deploy" / "kaggle"
+        
+    for dir in (dist_dir, deploy_dir):
+        if dir.exists():
+            shutil.rmtree(dir)
 
     # Making the directories
     dataset_dir = deploy_dir / "dataset"
-    dataset_dir.mkdir(parents=True, exist_ok=True)
-
-    scripts_dir = Path("scripts") / "kaggle"
     kernel_stage_dir = deploy_dir / "kernel"
-    kernel_stage_dir.mkdir(parents=True, exist_ok=True)
+    
+    for dir in (dataset_dir, kernel_stage_dir):
+        dir.mkdir(parents=True)
 
+    # Preparing the kernel source directory
+    scripts_dir = root / "scripts" / "kaggle"
     kernel_source_dir = scripts_dir / "kernel"
 
     return DeployPaths(
