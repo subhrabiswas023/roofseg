@@ -33,13 +33,13 @@ DATASET_METADATA = DatasetMetadata(
 )
 KERNEL_METADATA = KernelMetadata(
     id="subhrabiswas023/rooftop-segmentation-from-cli",
-    title="Rooftop Segmentation From CLI",
+    title="Rooftop Segmentation from CLI",
     code_file="run.py",
     language="python",
     kernel_type="script",
     is_private=True,
     enable_gpu=True,
-    enable_internet=False,
+    enable_internet=True,
     dataset_sources=[
         DATASET_METADATA.id,
         "dhruvpanchal1/inria-rooftop-segmentation-dataset-1024x1024-png",
