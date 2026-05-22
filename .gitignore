@@ -23,6 +23,10 @@ env/
 .ipynb_checkpoints/
 
 # Logs and temporary files
+/temp
+/tmp
+/logs
+*.tmp
 *.log
 *.jsonl
 
