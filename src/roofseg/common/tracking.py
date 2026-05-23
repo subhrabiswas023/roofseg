@@ -1,7 +1,7 @@
 from typing import Protocol
 from pathlib import Path
 
-from .typing import Dataclass
+from roofseg.common.typing import Dataclass
 
 
 class Tracker(Protocol):

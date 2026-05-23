@@ -5,8 +5,8 @@ from typing import Protocol, Any, Self
 import torch
 from torch.utils.data import DataLoader
 
-from .tracking import Tracker
-from .typing import Dataclass
+from roofseg.common.tracking import Tracker
+from roofseg.common.typing import Dataclass
 
 
 class Phase(StrEnum):
