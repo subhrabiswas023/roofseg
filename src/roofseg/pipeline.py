@@ -27,7 +27,7 @@ from roofseg.segmentation.tracking import Tracker
 config = Config(
     EnvironmentConfig(seed=42, device="cuda"),
     DatasetConfig(
-        root_dir="data",  # currently doesn't exist
+        root_dir="/kaggle/input/inria-rooftop-segmentation-dataset-1024x1024-png",  # FIX ME: hardcoded path for now. Only depends on kaggle environment
         image_dir="images",
         mask_dir="masks",
         image_height=1024,
