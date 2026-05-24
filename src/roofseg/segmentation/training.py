@@ -5,8 +5,8 @@ import torch
 from torch import nn, optim
 
 from roofseg.common import training
-from roofseg.common.typing import Dataclass, BatchedRGBTensor, BatchedGrayscaleTensor
-
+from roofseg.common.typing import Dataclass
+from roofseg.segmentation.typing import BatchedImageTensor, BatchedMaskTensor
 from roofseg.segmentation.metrics import ConfusionMatrix
 
 @dataclass(frozen=True)
@@ -15,7 +15,7 @@ class BatchMetrics(Dataclass):
     confusion_matrices: list[ConfusionMatrix]
 
 
-class Module(training.Module[BatchedRGBTensor, BatchedGrayscaleTensor, BatchMetrics]):
+class Module(training.Module[BatchedImageTensor, BatchedMaskTensor, BatchMetrics]):
     def __init__(
         self,
         model: nn.Module,
@@ -42,8 +42,8 @@ class Module(training.Module[BatchedRGBTensor, BatchedGrayscaleTensor, BatchMetr
     @override
     def train_step(
         self,
-        inputs: BatchedRGBTensor,
-        labels: BatchedGrayscaleTensor,
+        inputs: BatchedImageTensor,
+        labels: BatchedMaskTensor,
     ) -> BatchMetrics:
         self._model.train()
 
@@ -70,8 +70,8 @@ class Module(training.Module[BatchedRGBTensor, BatchedGrayscaleTensor, BatchMetr
     @override
     def validation_step(
         self,
-        inputs: BatchedRGBTensor,
-        labels: BatchedGrayscaleTensor,
+        inputs: BatchedImageTensor,
+        labels: BatchedMaskTensor,
     ) -> BatchMetrics:
         self._model.eval()
 

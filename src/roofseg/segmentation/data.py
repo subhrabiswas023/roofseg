@@ -10,8 +10,8 @@ import torch
 from torch.utils.data import Dataset
 from PIL import Image
 
-from roofseg.common.typing import RGBArray, GrayscaleArray, RGBTensor, GrayScaleTensor
 from roofseg.common.data import get_indices, patchify
+from roofseg.segmentation.typing import ImageArray, MaskArray, ImageTensor, MaskTensor
 
 
 class PatchedDataset(Dataset):
@@ -38,7 +38,7 @@ class PatchedDataset(Dataset):
     def __len__(self):
         return self.total_patches
 
-    def __getitem__(self, idx: int) -> tuple[RGBTensor, GrayScaleTensor]:
+    def __getitem__(self, idx: int) -> tuple[ImageTensor, MaskTensor]:
         image_idx, row_idx, col_idx = get_indices(
             idx, self.patches_per_image, self.patches_per_row
         )
@@ -63,14 +63,14 @@ class PatchedDataset(Dataset):
         return image, mask
 
     @lru_cache(maxsize=1)
-    def _load_image(self, path: Path) -> RGBArray:
+    def _load_image(self, path: Path) -> ImageArray:
         with Image.open(path) as img:
             image = img.convert("RGB")
         image = np.array(image, dtype=np.float32)
         return image
 
     @lru_cache(maxsize=1)
-    def _load_mask(self, path: Path) -> GrayscaleArray:
+    def _load_mask(self, path: Path) -> MaskArray:
         with Image.open(path) as msk:
             mask = msk.convert("L")
         mask = np.array(mask, dtype=np.int64)
