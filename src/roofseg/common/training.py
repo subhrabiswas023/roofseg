@@ -29,43 +29,41 @@ class Module[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass](Pro
     def validation_step(self, inputs: InputT, labels: LabelT) -> MetricT: ...
 
 
-class Trainer[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass]:
-    def __init__(
-        self,
-        module: Module[InputT, LabelT, MetricT],
-        tracker: Tracker,
-        device: torch.device,
-    ):
-        self._module = module.to(device)
-        self._tracker = tracker
-        self._device = device
+def train[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass](
+    module: Module[InputT, LabelT, MetricT],
+    tracker: Tracker,
+    device: torch.device,
+    train_loader: DataLoader,
+    val_loader: DataLoader,
+    num_epochs: int,
+):
+    module = module.to(device)
 
-    def fit(self, train_loader: DataLoader, val_loader: DataLoader, num_epochs: int):
-        for epoch in range(num_epochs):
-            for batch_idx, (inputs, labels) in enumerate(train_loader):
-                inputs, labels = inputs.to(self._device), labels.to(self._device)
-                metrics = self._module.train_step(inputs, labels)
+    for epoch in range(num_epochs):
+        for batch_idx, (inputs, labels) in enumerate(train_loader):
+            inputs, labels = inputs.to(device), labels.to(device)
+            metrics = module.train_step(inputs, labels)
 
-                self._tracker.log_metrics(
-                    TrainMetrics(
-                        epoch=epoch, batch=batch_idx, phase=Phase.TRAIN, metrics=metrics
-                    )
+            tracker.log_metrics(
+                TrainMetrics(
+                    epoch=epoch, batch=batch_idx, phase=Phase.TRAIN, metrics=metrics
                 )
-
-            for batch_idx, (inputs, labels) in enumerate(val_loader):
-                inputs, labels = inputs.to(self._device), labels.to(self._device)
-                metrics = self._module.validation_step(inputs, labels)
-
-                self._tracker.log_metrics(
-                    TrainMetrics(
-                        epoch=epoch,
-                        batch=batch_idx,
-                        phase=Phase.VAL,
-                        metrics=metrics,
-                    )
-                )
-
-            torch.save(
-                self._module.state_dict(),
-                self._tracker.artifacts_path / "checkpoint.pth",
             )
+
+        for batch_idx, (inputs, labels) in enumerate(val_loader):
+            inputs, labels = inputs.to(device), labels.to(device)
+            metrics = module.validation_step(inputs, labels)
+
+            tracker.log_metrics(
+                TrainMetrics(
+                    epoch=epoch,
+                    batch=batch_idx,
+                    phase=Phase.VAL,
+                    metrics=metrics,
+                )
+            )
+
+        torch.save(
+            module.state_dict(),
+            tracker.artifacts_path / "checkpoint.pth",
+        )
