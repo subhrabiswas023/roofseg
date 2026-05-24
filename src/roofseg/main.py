@@ -8,6 +8,7 @@
 from pathlib import Path
 import subprocess
 import sys
+import importlib
 
 IS_KAGGLE = Path("/kaggle/working").exists()
 
@@ -24,7 +25,9 @@ if IS_KAGGLE:
         [sys.executable, "-m", "pip", "install", "-q", *extra_dependencies]
     )
     
-    print("Remote environment sync complete.")
+    importlib.invalidate_caches()
+    
+print("Remote environment sync complete.")
     
 
 
