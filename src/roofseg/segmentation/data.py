@@ -1,5 +1,6 @@
 """Module for loading and processing the dataset."""
 
+from typing import override
 from functools import lru_cache
 from collections.abc import Callable
 from pathlib import Path
@@ -38,6 +39,7 @@ class PatchedDataset(Dataset[tuple[ImageTensor, MaskTensor]]):
     def __len__(self):
         return self.total_patches
 
+    @override
     def __getitem__(self, idx: int) -> tuple[ImageTensor, MaskTensor]:
         image_idx, row_idx, col_idx = get_indices(
             idx, self.patches_per_image, self.patches_per_row

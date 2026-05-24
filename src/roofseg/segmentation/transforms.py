@@ -1,3 +1,5 @@
+from typing import override
+
 import torch
 
 class SyncedImageMaskTransform(torch.nn.Module):
@@ -7,6 +9,7 @@ class SyncedImageMaskTransform(torch.nn.Module):
         super().__init__()
         self.spatial_transform = spatial_transform
 
+    @override
     def forward(self, image, mask):
         mask = mask.unsqueeze(1).float()
         stacked = torch.cat([image, mask], dim=1)

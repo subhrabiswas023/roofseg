@@ -1,5 +1,6 @@
 import torch
 import segmentation_models_pytorch as smp
+from typing import override
 
 class CombinedLoss(torch.nn.Module):
     """Focal and dice loss added with the proportion of alpha"""
@@ -10,6 +11,7 @@ class CombinedLoss(torch.nn.Module):
         self.focal_loss_fn = smp.losses.FocalLoss(mode=mode)
         self.dice_loss_fn = smp.losses.DiceLoss(mode=mode)
 
+    @override
     def forward(self, preds, targets):
         focal_loss = self.focal_loss_fn(preds, targets)
         dice_loss = self.dice_loss_fn(preds, targets)
