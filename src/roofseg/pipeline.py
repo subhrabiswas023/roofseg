@@ -8,16 +8,7 @@ import kornia.augmentation as K
 import segmentation_models_pytorch as smp
 
 from roofseg.common.training import train, Phase
-from roofseg.segmentation.config import (
-    Config,
-    EnvironmentConfig,
-    DatasetConfig,
-    AugmentationConfig,
-    ModelConfig,
-    CriterionConfig,
-    OptimizerConfig,
-    TrainingConfig,
-)
+from roofseg.segmentation.config import Config
 from roofseg.segmentation.data import PatchedDataset
 from roofseg.segmentation.transforms import SyncedImageMaskTransform
 from roofseg.segmentation.losses import CombinedLoss
@@ -101,24 +92,7 @@ def build_optimizer(config, model):
 
 
 def run_training():
-    config = Config(
-        EnvironmentConfig(seed=42, device="cuda"),
-        DatasetConfig(
-            root_dir="/kaggle/input/inria-rooftop-segmentation-dataset-1024x1024-png",  # FIX ME: hardcoded path for now. Only depends on kaggle environment
-            image_dir="images",
-            mask_dir="masks",
-            image_height=1024,
-            image_width=1024,
-            num_classes=2,
-            color_threshold=128,
-            patch_size=256,
-        ),
-        AugmentationConfig(horizontal_flip_prob=0.5, vertical_flip_prob=0.5),
-        ModelConfig(encoder_name="mobilenet_v2", encoder_weights="imagenet"),
-        CriterionConfig(criterion="CombinedLoss", loss_alpha=0.5),
-        OptimizerConfig(optimizer="Adam", learning_rate=0.001),
-        TrainingConfig(batch_size=16, num_epochs=10),
-    )
+    config = Config()
 
     tracker = Tracker(Path("out"))
 
