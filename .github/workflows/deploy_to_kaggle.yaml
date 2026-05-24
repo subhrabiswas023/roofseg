@@ -1,0 +1,58 @@
+name: Production Kaggle Deployment Gateway
+
+on:
+    push:
+        branches: ["main"]
+
+jobs:
+    bundle-and-deploy:
+        name: Bundle & Deploy
+        runs-on: ubuntu-latest
+
+        env:
+            KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+            KAGGLE_NOTEBOOK_SLUG: ${{ vars.KAGGLE_NOTEBOOK_SLUG }}
+            KAGGLE_NOTEBOOK_TITLE: ${{ vars.KAGGLE_NOTEBOOK_TITLE }}
+
+            DEPLOYMENT_DIR: "deploy"
+            SOURCE_ENTRY_PATH: "src/roofseg/main.py"
+
+            METADATA_GENERATOR_PATH: "scripts/generate_metadata.py"
+
+        steps:
+            - name: Checkout Source Code
+              uses: actions/checkout@v4
+
+            - name: Inject Python Runtime
+              uses: actions/setup-python@v5
+              with:
+                  python-version-file: "pyproject.toml"
+
+            - name: Setup UV Package Manager
+              uses: astral-sh/setup-uv@v8.1.0
+              with:
+                  enable-cache: true
+
+            - name: Install Build Tools
+              run: uv pip install -q stickytape kaggle
+
+            - name: Bundle Source Code
+              run: |
+                  mkdir -p deploy
+                  uv run stickytape ${{ env.SOURCE_ENTRY_PATH }} --add-python-path src/ --output-file ${{env.DEPLOYMENT_DIR}}/bundle.py
+
+            - name: Put Kernel Metadata
+              run: uv run ${{env.METADATA_GENERATOR_PATH}}
+
+            - name: Authenticate Kaggle Environment Profile
+              env:
+                  KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+              run: |
+                  mkdir -p ~/.kaggle
+                  echo "{\"username\":\"${{env.KAGGLE_USERNAME}}\",\"key\":\"${{env.KAGGLE_KEY}}\"}" > ~/.kaggle/kaggle.json
+                  chmod 600 ~/.kaggle/kaggle.json
+
+            - name: Kernel Cluster Push
+              run: |
+                  cd ${{env.DEPLOYMENT_DIR}}
+                  uv run kaggle kernels push
