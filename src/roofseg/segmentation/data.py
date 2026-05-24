@@ -14,7 +14,7 @@ from roofseg.common.data import get_indices, patchify
 from roofseg.segmentation.typing import ImageArray, MaskArray, ImageTensor, MaskTensor
 
 
-class PatchedDataset(Dataset):
+class PatchedDataset(Dataset[tuple[ImageTensor, MaskTensor]]):
     def __init__(
         self,
         image_paths: list[Path],

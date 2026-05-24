@@ -16,7 +16,7 @@ from roofseg.segmentation.training import Module
 from roofseg.segmentation.tracking import Tracker
 
 
-def setup_environment(config):
+def setup_environment(config: Config):
     torch.manual_seed(config.environment.seed)
     np.random.seed(config.environment.seed)
 
@@ -24,7 +24,7 @@ def setup_environment(config):
     return DEVICE
 
 
-def build_dataloaders(config, DEVICE):
+def build_dataloaders(config: Config, device: torch.device):
     DeployableDataset = partial(
         PatchedDataset,
         image_width=config.dataset.image_width,
@@ -45,7 +45,7 @@ def build_dataloaders(config, DEVICE):
         train_dataset,
         batch_size=config.training.batch_size,
         shuffle=True,
-        pin_memory=(DEVICE.type == "cuda"),
+        pin_memory=(device.type == "cuda"),
     )
 
     val_path = Path(config.dataset.root_dir) / Phase.VAL
@@ -60,13 +60,13 @@ def build_dataloaders(config, DEVICE):
         val_dataset,
         batch_size=config.training.batch_size,
         shuffle=False,
-        pin_memory=(DEVICE.type == "cuda"),
+        pin_memory=(device.type == "cuda"),
     )
 
     return train_loader, val_loader
 
 
-def build_transformer(config):
+def build_transformer(config: Config):
     return SyncedImageMaskTransform(
         spatial_transform=torch.nn.Sequential(
             K.RandomHorizontalFlip(p=config.augmentation.horizontal_flip_prob),
@@ -83,11 +83,11 @@ def build_model(config: Config):
     )
 
 
-def build_criterion(config):
+def build_criterion(config: Config):
     return CombinedLoss(alpha=config.criterion.loss_alpha, mode="multiclass")
 
 
-def build_optimizer(config, model):
+def build_optimizer(config: Config, model: torch.nn.Module):
     return torch.optim.Adam(model.parameters(), lr=config.optimizer.learning_rate)
 
 

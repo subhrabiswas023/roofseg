@@ -33,8 +33,8 @@ def train[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass](
     module: Module[InputT, LabelT, MetricT],
     tracker: Tracker,
     device: torch.device,
-    train_loader: DataLoader,
-    val_loader: DataLoader,
+    train_loader: DataLoader[tuple[InputT, LabelT]],
+    val_loader: DataLoader[tuple[InputT, LabelT]],
     num_epochs: int,
 ):
     module = module.to(device)
