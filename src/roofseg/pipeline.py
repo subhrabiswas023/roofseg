@@ -17,13 +17,8 @@ def run_training_pipeline[C: Config](
     config: C,
     tracker: Tracker,
     environment_setter: Callable[[C], torch.device],
-    dataloader_factory: Callable[
-        [C, torch.device],
-        tuple[
-            DataLoader[tuple[ImageTensor, MaskTensor]],
-            DataLoader[tuple[ImageTensor, MaskTensor]],
-        ],
-    ],
+    train_loader_factory: Callable[[C], DataLoader[tuple[ImageTensor, MaskTensor]]],
+    val_loader_factory: Callable[[C], DataLoader[tuple[ImageTensor, MaskTensor]]],
     transformer_factory: Callable[[C], torch.nn.Module],
     model_factory: Callable[[C], torch.nn.Module],
     criterion_factory: Callable[[C], torch.nn.Module],
@@ -31,7 +26,6 @@ def run_training_pipeline[C: Config](
 ) -> None:
     tracker.save_config(config)
     device = environment_setter(config)
-    train_loader, val_loader = dataloader_factory(config, device)
 
     model = model_factory(config)
     train(
@@ -43,8 +37,8 @@ def run_training_pipeline[C: Config](
         ),
         tracker,
         device,
-        train_loader,
-        val_loader,
+        train_loader_factory(config),
+        val_loader_factory(config),
         config.training.num_epochs,
     )
 
@@ -54,7 +48,8 @@ def run_default_training_pipeline() -> None:
         Config(),
         Tracker(Path("out")),
         factories.setup_environment,
-        factories.build_dataloaders,
+        factories.build_train_loader,
+        factories.build_val_loader,
         factories.build_transformer,
         factories.build_model,
         factories.build_criterion,

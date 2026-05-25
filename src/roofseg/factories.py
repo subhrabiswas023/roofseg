@@ -18,11 +18,11 @@ def setup_environment(config: Config):
     torch.manual_seed(config.environment.seed)
     np.random.seed(config.environment.seed)
 
-    DEVICE = torch.device(config.environment.device)
-    return DEVICE
+    device = torch.device(config.environment.device)
+    return device
 
 
-def build_dataloaders(config: Config, device: torch.device):
+def _build_loader(phase: Phase, config: Config):
     DeployableDataset = partial(
         PatchedDataset,
         image_width=config.dataset.image_width,
@@ -31,37 +31,23 @@ def build_dataloaders(config: Config, device: torch.device):
         patch_size=config.dataset.patch_size,
     )
 
-    train_path = Path(config.dataset.root_dir) / Phase.TRAIN
-    train_image_dir = train_path / config.dataset.image_dir
-    train_mask_dir = train_path / config.dataset.mask_dir
-    train_dataset = DeployableDataset(
-        image_paths=list(train_image_dir.iterdir()),
-        get_mask_path_from_image_path=lambda p: train_mask_dir / p.name,
-    )
+    phase_path = Path(config.dataset.root_dir) / Phase.TRAIN
+    image_dir = phase_path / config.dataset.image_dir
+    mask_dir = phase_path / config.dataset.mask_dir
 
-    train_loader = DataLoader(
-        train_dataset,
+    return DataLoader(
+        DeployableDataset(
+            image_paths=list(image_dir.iterdir()),
+            get_mask_path_from_image_path=lambda p: mask_dir / p.name,
+        ),
         batch_size=config.training.batch_size,
-        shuffle=True,
-        pin_memory=(device.type == "cuda"),
+        shuffle=phase == Phase.TRAIN,
+        pin_memory=(config.environment.device == "cuda"),
     )
 
-    val_path = Path(config.dataset.root_dir) / Phase.VAL
-    val_image_dir = val_path / config.dataset.image_dir
-    val_mask_dir = val_path / config.dataset.mask_dir
-    val_dataset = DeployableDataset(
-        image_paths=list(val_image_dir.iterdir()),
-        get_mask_path_from_image_path=lambda p: val_mask_dir / p.name,
-    )
 
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=config.training.batch_size,
-        shuffle=False,
-        pin_memory=(device.type == "cuda"),
-    )
-
-    return train_loader, val_loader
+build_train_loader = partial(_build_loader, phase=Phase.TRAIN)
+build_val_loader = partial(_build_loader, phase=Phase.VAL)
 
 
 def build_transformer(config: Config):
