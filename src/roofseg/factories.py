@@ -12,9 +12,10 @@ from roofseg.segmentation.config import Config
 from roofseg.segmentation.data import PatchedDataset
 from roofseg.segmentation.transforms import SyncedImageMaskTransform
 from roofseg.segmentation.losses import CombinedLoss
+from roofseg.segmentation.typing import PairedTensor
 
 
-def setup_environment(config: Config):
+def setup_environment(config: Config) -> torch.device:
     torch.manual_seed(config.environment.seed)
     np.random.seed(config.environment.seed)
 
@@ -22,7 +23,7 @@ def setup_environment(config: Config):
     return device
 
 
-def _build_loader(phase: Phase, config: Config):
+def _build_loader(phase: Phase, config: Config) -> DataLoader[PairedTensor]:
     DeployableDataset = partial(
         PatchedDataset,
         image_width=config.dataset.image_width,
@@ -31,7 +32,7 @@ def _build_loader(phase: Phase, config: Config):
         patch_size=config.dataset.patch_size,
     )
 
-    phase_path = Path(config.dataset.root_dir) / Phase.TRAIN
+    phase_path = Path(config.dataset.root_dir) / phase
     image_dir = phase_path / config.dataset.image_dir
     mask_dir = phase_path / config.dataset.mask_dir
 
@@ -50,7 +51,7 @@ build_train_loader = partial(_build_loader, phase=Phase.TRAIN)
 build_val_loader = partial(_build_loader, phase=Phase.VAL)
 
 
-def build_transformer(config: Config):
+def build_transformer(config: Config) -> torch.nn.Module:
     return SyncedImageMaskTransform(
         spatial_transform=torch.nn.Sequential(
             K.RandomHorizontalFlip(p=config.augmentation.horizontal_flip_prob),
@@ -59,7 +60,7 @@ def build_transformer(config: Config):
     )
 
 
-def build_model(config: Config):
+def build_model(config: Config) -> torch.nn.Module:
     return smp.Unet(
         config.model.encoder_name,
         encoder_weights=config.model.encoder_weights,
@@ -67,9 +68,9 @@ def build_model(config: Config):
     )
 
 
-def build_criterion(config: Config):
+def build_criterion(config: Config) -> torch.nn.Module:
     return CombinedLoss(alpha=config.criterion.loss_alpha, mode="multiclass")
 
 
-def build_optimizer(config: Config, model: torch.nn.Module):
+def build_optimizer(config: Config, model: torch.nn.Module) -> torch.optim.Optimizer:
     return torch.optim.Adam(model.parameters(), lr=config.optimizer.learning_rate)

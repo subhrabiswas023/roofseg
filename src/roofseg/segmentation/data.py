@@ -12,10 +12,10 @@ from torch.utils.data import Dataset
 from PIL import Image
 
 from roofseg.common.data import get_indices, patchify
-from roofseg.segmentation.typing import ImageArray, MaskArray, ImageTensor, MaskTensor
+from roofseg.segmentation.typing import ImageArray, MaskArray, PairedTensor
 
 
-class PatchedDataset(Dataset[tuple[ImageTensor, MaskTensor]]):
+class PatchedDataset(Dataset[PairedTensor]):
     def __init__(
         self,
         image_paths: list[Path],
@@ -40,7 +40,7 @@ class PatchedDataset(Dataset[tuple[ImageTensor, MaskTensor]]):
         return self.total_patches
 
     @override
-    def __getitem__(self, idx: int) -> tuple[ImageTensor, MaskTensor]:
+    def __getitem__(self, idx: int) -> PairedTensor:
         image_idx, row_idx, col_idx = get_indices(
             idx, self.patches_per_image, self.patches_per_row
         )

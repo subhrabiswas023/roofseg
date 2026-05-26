@@ -10,15 +10,15 @@ from roofseg.segmentation.training import Module
 from roofseg.segmentation.tracking import Tracker
 
 import roofseg.factories as factories
-from roofseg.segmentation.typing import ImageTensor, MaskTensor
+from roofseg.segmentation.typing import PairedTensor
 
 
 def run_training_pipeline[C: Config](
     config: C,
     tracker: Tracker,
     environment_setter: Callable[[C], torch.device],
-    train_loader_factory: Callable[[C], DataLoader[tuple[ImageTensor, MaskTensor]]],
-    val_loader_factory: Callable[[C], DataLoader[tuple[ImageTensor, MaskTensor]]],
+    train_loader_factory: Callable[[C], DataLoader[PairedTensor]],
+    val_loader_factory: Callable[[C], DataLoader[PairedTensor]],
     transformer_factory: Callable[[C], torch.nn.Module],
     model_factory: Callable[[C], torch.nn.Module],
     criterion_factory: Callable[[C], torch.nn.Module],
