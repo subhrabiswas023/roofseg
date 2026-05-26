@@ -37,7 +37,7 @@ class Module(training.Module[BatchedImageTensor, BatchedMaskTensor, BatchMetrics
 
     @override
     def state_dict(self):
-        return self._model.state_dict()
+        return self._model.state_dict() # FIX ME: no optimizer state is exposed
 
     @override
     def train_step(

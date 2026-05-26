@@ -1,11 +1,10 @@
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Protocol, Any, Self
+from typing import Callable, Protocol, Any, Self
 
 import torch
 from torch.utils.data import DataLoader
 
-from roofseg.common.tracking import Tracker
 from roofseg.common.typing import Dataclass
 
 
@@ -31,11 +30,14 @@ class Module[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass](Pro
 
 def train[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass](
     module: Module[InputT, LabelT, MetricT],
-    tracker: Tracker,
     device: torch.device,
     train_loader: DataLoader[tuple[InputT, LabelT]],
     val_loader: DataLoader[tuple[InputT, LabelT]],
     num_epochs: int,
+    on_step_end: Callable[[Dataclass], None],
+    on_epoch_end: Callable[
+        [dict[str, object]], None
+    ],  # FIX ME: can this be better than dict[str, object]?
 ):
     module = module.to(device)
 
@@ -44,7 +46,7 @@ def train[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass](
             inputs, labels = inputs.to(device), labels.to(device)
             metrics = module.train_step(inputs, labels)
 
-            tracker.log_metrics(
+            on_step_end(
                 TrainMetrics(
                     epoch=epoch, batch=batch_idx, phase=Phase.TRAIN, metrics=metrics
                 )
@@ -54,7 +56,7 @@ def train[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass](
             inputs, labels = inputs.to(device), labels.to(device)
             metrics = module.validation_step(inputs, labels)
 
-            tracker.log_metrics(
+            on_step_end(
                 TrainMetrics(
                     epoch=epoch,
                     batch=batch_idx,
@@ -63,7 +65,4 @@ def train[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass](
                 )
             )
 
-        torch.save(
-            module.state_dict(),
-            tracker.artifacts_path / "checkpoint.pth",
-        )
+        on_epoch_end(module.state_dict()) # 

@@ -35,11 +35,12 @@ def run_training_pipeline[C: Config](
             criterion_factory(config),
             optimizer_factory(config, model),
         ),
-        tracker,
         device,
         train_loader_factory(config),
         val_loader_factory(config),
         config.training.num_epochs,
+        tracker.log_metrics,
+        lambda state_dict: torch.save(state_dict, tracker.artifacts_path / "checkpoint.pth"),
     )
 
 
