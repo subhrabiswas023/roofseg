@@ -43,3 +43,6 @@ from roofseg.pipeline import run_default_training_pipeline  # noqa: E402, I001
 
 def main() -> None:
     run_default_training_pipeline()
+    
+if __name__ == "__main__":
+    main()
