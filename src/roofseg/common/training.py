@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Callable, Protocol, Any, Self
+from typing import Protocol, Self
 
 import torch
 from torch.utils.data import DataLoader
 
-from roofseg.common.typing import Dataclass
+from roofseg.common.typing import Dataclass, JsonDict, StateDict
+from roofseg.common.tracking import ArtifactTracker, MetricRestorer, MetricTracker
 
 
 class Phase(StrEnum):
@@ -22,7 +23,8 @@ class TrainMetrics(Dataclass):
 
 
 class Module[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass](Protocol):
-    def state_dict(self) -> dict[str, Any]: ...
+    def model_state_dict(self) -> StateDict: ...
+    def optimizer_state_dict(self) -> StateDict: ...
     def to(self, device: torch.device) -> Self: ...
     def train_step(self, inputs: InputT, labels: LabelT) -> MetricT: ...
     def validation_step(self, inputs: InputT, labels: LabelT) -> MetricT: ...
@@ -34,35 +36,41 @@ def train[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass](
     train_loader: DataLoader[tuple[InputT, LabelT]],
     val_loader: DataLoader[tuple[InputT, LabelT]],
     num_epochs: int,
-    on_step_end: Callable[[Dataclass], None],
-    on_epoch_end: Callable[
-        [dict[str, object]], None
-    ],  # FIX ME: can this be better than dict[str, object]?
+    metric_tracker: MetricTracker[JsonDict],
+    metric_restorer: MetricRestorer[JsonDict],
+    artifact_tracker: ArtifactTracker[StateDict],
 ):
     module = module.to(device)
 
-    for epoch in range(num_epochs):
+    last_metrics = metric_restorer.restore_last_metrics()
+    start_epoch = TrainMetrics.from_dict(last_metrics).epoch + 1 if last_metrics else 0
+
+    for epoch in range(start_epoch, num_epochs):
         for batch_idx, (inputs, labels) in enumerate(train_loader):
             inputs, labels = inputs.to(device), labels.to(device)
-            metrics = module.train_step(inputs, labels)
+            last_metrics = module.train_step(inputs, labels)
 
-            on_step_end(
+            metric_tracker.log_metrics(
                 TrainMetrics(
-                    epoch=epoch, batch=batch_idx, phase=Phase.TRAIN, metrics=metrics
-                )
+                    epoch=epoch,
+                    batch=batch_idx,
+                    phase=Phase.TRAIN,
+                    metrics=last_metrics,
+                ).to_dict()
             )
 
         for batch_idx, (inputs, labels) in enumerate(val_loader):
             inputs, labels = inputs.to(device), labels.to(device)
-            metrics = module.validation_step(inputs, labels)
+            last_metrics = module.validation_step(inputs, labels)
 
-            on_step_end(
+            metric_tracker.log_metrics(
                 TrainMetrics(
                     epoch=epoch,
                     batch=batch_idx,
                     phase=Phase.VAL,
-                    metrics=metrics,
-                )
+                    metrics=last_metrics,
+                ).to_dict()
             )
 
-        on_epoch_end(module.state_dict()) # 
+        artifact_tracker.save_model(module.model_state_dict())
+        artifact_tracker.save_optimizer(module.optimizer_state_dict())

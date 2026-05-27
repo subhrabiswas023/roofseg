@@ -24,30 +24,43 @@ def run_training_pipeline[C: Config](
     criterion_factory: Callable[[C], torch.nn.Module],
     optimizer_factory: Callable[[C, torch.nn.Module], torch.optim.Optimizer],
 ) -> None:
-    tracker.save_config(config)
+    tracker.save_config(config.to_dict())
     device = environment_setter(config)
 
     model = model_factory(config)
+
+    model_state = tracker.restore_model()
+    if model_state:
+        model.load_state_dict(model_state)
+
+    optimizer = optimizer_factory(config, model)
+    optimizer_state = tracker.restore_optimizer()
+    if optimizer_state:
+        optimizer.load_state_dict(optimizer_state)
+
     train(
-        Module(
+        module=Module(
             model,
             transformer_factory(config),
             criterion_factory(config),
-            optimizer_factory(config, model),
+            optimizer,
         ),
-        device,
-        train_loader_factory(config),
-        val_loader_factory(config),
-        config.training.num_epochs,
-        tracker.log_metrics,
-        lambda state_dict: torch.save(state_dict, tracker.artifacts_path / "checkpoint.pth"),
+        device=device,
+        train_loader=train_loader_factory(config),
+        val_loader=val_loader_factory(config),
+        num_epochs=config.training.num_epochs,
+        metric_tracker=tracker,
+        metric_restorer=tracker,
+        artifact_tracker=tracker,
     )
 
 
 def run_default_training_pipeline() -> None:
     run_training_pipeline(
         Config(),
-        Tracker(Path("out")),
+        Tracker(
+            target_root_dir=Path("out"), restoration_root_dir=Path("/kaggle/input")
+        ),
         factories.setup_environment,
         factories.build_train_loader,
         factories.build_val_loader,

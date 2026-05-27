@@ -5,9 +5,10 @@ import torch
 from torch import nn, optim
 
 from roofseg.common import training
-from roofseg.common.typing import Dataclass
+from roofseg.common.typing import Dataclass, StateDict
 from roofseg.segmentation.typing import BatchedImageTensor, BatchedMaskTensor
 from roofseg.segmentation.metrics import ConfusionMatrix
+
 
 @dataclass(frozen=True)
 class BatchMetrics(Dataclass):
@@ -36,8 +37,11 @@ class Module(training.Module[BatchedImageTensor, BatchedMaskTensor, BatchMetrics
         return self
 
     @override
-    def state_dict(self):
-        return self._model.state_dict() # FIX ME: no optimizer state is exposed
+    def model_state_dict(self) -> StateDict:
+        return self._model.state_dict()
+
+    def optimizer_state_dict(self) -> StateDict:
+        return self._optimizer.state_dict()
 
     @override
     def train_step(
@@ -56,7 +60,7 @@ class Module(training.Module[BatchedImageTensor, BatchedMaskTensor, BatchMetrics
 
         loss.backward()
         self._optimizer.step()
-        
+
         preds = torch.argmax(logits, dim=1)
 
         return BatchMetrics(
@@ -64,7 +68,7 @@ class Module(training.Module[BatchedImageTensor, BatchedMaskTensor, BatchMetrics
             confusion_matrices=[
                 ConfusionMatrix.from_tensors(pred, target)
                 for pred, target in zip(preds, labels)
-            ]
+            ],
         )
 
     @override
@@ -78,7 +82,7 @@ class Module(training.Module[BatchedImageTensor, BatchedMaskTensor, BatchMetrics
         with torch.inference_mode():
             logits = self._model(inputs)
             loss = self._criterion(logits, labels)
-            
+
             preds = torch.argmax(logits, dim=1)
 
         return BatchMetrics(
@@ -86,5 +90,5 @@ class Module(training.Module[BatchedImageTensor, BatchedMaskTensor, BatchMetrics
             confusion_matrices=[
                 ConfusionMatrix.from_tensors(pred, label)
                 for pred, label in zip(preds, labels)
-            ]
+            ],
         )
