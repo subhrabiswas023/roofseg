@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from roofseg.common.training import train
 from roofseg.segmentation.config import Config
 from roofseg.segmentation.training import Module
-from roofseg.segmentation.tracking import Tracker
+from roofseg.segmentation.tracking import LocalRestorer, LocalTracker, PathContext
 
 import roofseg.factories as factories
 from roofseg.segmentation.typing import PairedTensor
@@ -15,7 +15,8 @@ from roofseg.segmentation.typing import PairedTensor
 
 def run_training_pipeline[C: Config](
     config: C,
-    tracker: Tracker,
+    tracker: LocalTracker,
+    restorer: LocalRestorer,
     environment_setter: Callable[[C], torch.device],
     train_loader_factory: Callable[[C], DataLoader[PairedTensor]],
     val_loader_factory: Callable[[C], DataLoader[PairedTensor]],
@@ -29,13 +30,12 @@ def run_training_pipeline[C: Config](
 
     model = model_factory(config)
 
-    model_state = tracker.restore_model()
-    if model_state:
+    if model_state := restorer.restore_model():
         model.load_state_dict(model_state)
 
     optimizer = optimizer_factory(config, model)
-    optimizer_state = tracker.restore_optimizer()
-    if optimizer_state:
+
+    if optimizer_state := restorer.restore_optimizer():
         optimizer.load_state_dict(optimizer_state)
 
     train(
@@ -50,22 +50,22 @@ def run_training_pipeline[C: Config](
         val_loader=val_loader_factory(config),
         num_epochs=config.training.num_epochs,
         metric_tracker=tracker,
-        metric_restorer=tracker,
+        metric_restorer=restorer,
         artifact_tracker=tracker,
+        transaction=tracker.prepare_transaction(),
     )
 
 
 def run_default_training_pipeline() -> None:
     run_training_pipeline(
-        Config(),
-        Tracker(
-            target_root_dir=Path("out"), restoration_root_dir=Path("/kaggle/input")
-        ),
-        factories.setup_environment,
-        factories.build_train_loader,
-        factories.build_val_loader,
-        factories.build_transformer,
-        factories.build_model,
-        factories.build_criterion,
-        factories.build_optimizer,
+        config=Config(),
+        tracker=LocalTracker(paths=PathContext(root_dir=Path("out"))),
+        restorer=LocalRestorer(paths=PathContext(root_dir=Path("."))),
+        environment_setter=factories.setup_environment,
+        train_loader_factory=factories.build_train_loader,
+        val_loader_factory=factories.build_val_loader,
+        transformer_factory=factories.build_transformer,
+        model_factory=factories.build_model,
+        criterion_factory=factories.build_criterion,
+        optimizer_factory=factories.build_optimizer,
     )

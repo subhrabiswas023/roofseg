@@ -5,6 +5,7 @@ from typing import Protocol, Self
 import torch
 from torch.utils.data import DataLoader
 
+from roofseg.common.transaction import Transaction
 from roofseg.common.typing import Dataclass, JsonDict, StateDict
 from roofseg.common.tracking import ArtifactTracker, MetricRestorer, MetricTracker
 
@@ -39,6 +40,7 @@ def train[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass](
     metric_tracker: MetricTracker[JsonDict],
     metric_restorer: MetricRestorer[JsonDict],
     artifact_tracker: ArtifactTracker[StateDict],
+    transaction: Transaction,
 ):
     module = module.to(device)
 
@@ -47,8 +49,7 @@ def train[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass](
 
     for epoch in range(start_epoch, num_epochs):
         for batch_idx, (inputs, labels) in enumerate(train_loader):
-            inputs, labels = inputs.to(device), labels.to(device)
-            last_metrics = module.train_step(inputs, labels)
+            last_metrics = module.train_step(inputs.to(device), labels.to(device))
 
             metric_tracker.log_metrics(
                 TrainMetrics(
@@ -60,8 +61,7 @@ def train[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass](
             )
 
         for batch_idx, (inputs, labels) in enumerate(val_loader):
-            inputs, labels = inputs.to(device), labels.to(device)
-            last_metrics = module.validation_step(inputs, labels)
+            last_metrics = module.validation_step(inputs.to(device), labels.to(device))
 
             metric_tracker.log_metrics(
                 TrainMetrics(
@@ -74,3 +74,7 @@ def train[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass](
 
         artifact_tracker.save_model(module.model_state_dict())
         artifact_tracker.save_optimizer(module.optimizer_state_dict())
+        
+        transaction.stage()
+        transaction.commit()
+        

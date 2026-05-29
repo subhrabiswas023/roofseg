@@ -8,7 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 from roofseg.common.training import Trainer
 from roofseg.segmentation.transforms import SyncedImageMaskTransform
 from roofseg.segmentation.training import Module
-from roofseg.segmentation.tracking import Tracker
+from roofseg.segmentation.tracking import LocalTracker
 
 
 def test_main(
@@ -31,7 +31,7 @@ def test_main(
         Module(
             model, SyncedImageMaskTransform(torch.nn.Identity()), criterion, optimizer
         ),
-        Tracker(
+        LocalTracker(
             tmp_path
         ),
         DEVICE,

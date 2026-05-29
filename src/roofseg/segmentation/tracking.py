@@ -1,8 +1,7 @@
 from functools import cached_property
-import json
 from pathlib import Path
 from typing import override
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import torch
 import yaml
@@ -12,93 +11,126 @@ from roofseg.common.tracking import (
     ArtifactRestorer,
     MetricTracker,
     MetricRestorer,
+    load_from_jsonl,
+    save_to_yaml,
 )
+from roofseg.common.transaction import BatchedTransaction, Transaction
 from roofseg.common.typing import JsonDict, StateDict
+from roofseg.segmentation.transaction import SaveArtifact, SaveMetrics
 
 
 @dataclass(frozen=True)
-class Tracker(
-    MetricTracker[JsonDict],
-    MetricRestorer[JsonDict],
-    ArtifactTracker[StateDict],
-    ArtifactRestorer[StateDict],
-):
-    target_root_dir: Path
-    restoration_root_dir: Path
+class PathContext:
+    root_dir: Path = Path(".")
+
     config_file_name: str = "config.yaml"
     metrics_file_name: str = "metrics.jsonl"
     artifacts_dir_name: str = "artifacts"
     model_file_name: str = "model.pth"
     optimizer_file_name = "optimizer.pth"
 
-    def __post_init__(
-        self,
-    ):
-        self.target_root_dir.mkdir(parents=True, exist_ok=True)
-        self.artifacts_path.mkdir(parents=True, exist_ok=True)
+    @cached_property
+    def config(self) -> Path:
+        return self.root_dir / self.config_file_name
 
     @cached_property
-    def artifacts_path(self) -> Path:
-        return self.target_root_dir / self.artifacts_dir_name
+    def metrics(self) -> Path:
+        return self.root_dir / self.metrics_file_name
 
     @cached_property
-    def artifacts_restoration_path(self) -> Path:
-        return self.restoration_root_dir / self.artifacts_dir_name
+    def artifacts(self) -> Path:
+        return self.root_dir / self.artifacts_dir_name
 
-    def save_config(self, config: JsonDict) -> None:
-        config_path = self.target_root_dir / self.config_file_name
+    @cached_property
+    def model(self) -> Path:
+        return self.root_dir / self.model_file_name
 
-        with open(config_path, "w", encoding="utf-8") as f:
-            yaml.dump(config, f)
+    @cached_property
+    def optimizer(self) -> Path:
+        return self.root_dir / self.optimizer_file_name
 
-    @override
-    def log_metrics(self, metrics: JsonDict) -> None:
-        metrics_path = self.target_root_dir / self.metrics_file_name
 
-        with open(metrics_path, "a", encoding="utf-8") as f:
-            json.dump(metrics, f)
-            f.write("\n")
+@dataclass
+class LocalRestorer(MetricRestorer[JsonDict], ArtifactRestorer[StateDict]):
+    paths: PathContext
+
+    def __post_init__(self):
+        BatchedTransaction(
+            [
+                SaveMetrics(None, self.paths.metrics),
+                SaveArtifact(None, self.paths.model),
+                SaveArtifact(None, self.paths.optimizer),
+            ]
+        ).recover_if_failed()
 
     @override
     def restore_last_metrics(self) -> JsonDict | None:
-        metrics_path = self.restoration_root_dir / self.metrics_file_name
-
-        if not metrics_path.exists():
+        if not self.paths.metrics.exists():
             return None
 
-        with open(metrics_path, "r", encoding="utf-8") as f:
-            last_dict = None
-            for line in f:
-                line = line.strip()
-                if line:
-                    last_dict = json.loads(line)
+        last_metrics = None
 
-        if isinstance(last_dict, dict):
-            return last_dict
+        for metrics in load_from_jsonl(self.paths.metrics):
+            last_metrics = metrics
 
-        raise TypeError(f"Expected JSON object, got {type(last_dict).__name__}")
+        if isinstance(last_metrics, dict):
+            return last_metrics
 
-    def save_artifact(self, artifact: StateDict, filename: str) -> None:
-        torch.save(artifact, self.artifacts_path / filename)
+        raise TypeError(f"Expected JSON object, got {type(last_metrics).__name__}")
+
+    def _restore_artifact(self, artifact_path: Path) -> StateDict | None:
+        if not artifact_path.exists():
+            return None
+
+        return torch.load(artifact_path, weights_only=True)
+
+    @override
+    def restore_model(self) -> StateDict | None:
+        return self._restore_artifact(self.paths.model)
+
+    @override
+    def restore_optimizer(self) -> StateDict | None:
+        return self._restore_artifact(self.paths.optimizer)
+
+
+@dataclass
+class LocalTracker(MetricTracker[JsonDict], ArtifactTracker[StateDict]):
+    paths: PathContext
+    _metrics_buffer: list[JsonDict] = field(default_factory=list)
+    _transactions: list[Transaction] = field(default_factory=list)
+
+    def __post_init__(self):
+        self.paths.root_dir.mkdir(parents=True, exist_ok=True)
+        self.paths.artifacts.mkdir(parents=True, exist_ok=True)
+
+    def save_config(self, config: JsonDict) -> None:
+        save_to_yaml(config, self.paths.config)
+
+    @override
+    def log_metrics(self, metrics: JsonDict) -> None:
+        self._metrics_buffer.append(metrics)
 
     @override
     def save_model(self, model_state: StateDict) -> None:
-        self.save_artifact(model_state, self.model_file_name)
+        self._save_artifact(model_state, self.paths.model)
 
     @override
     def save_optimizer(self, optimizer_state: StateDict) -> None:
-        self.save_artifact(optimizer_state, self.optimizer_file_name)
+        self._save_artifact(optimizer_state, self.paths.optimizer)
 
-    def restore_artifact(self, filename: str) -> StateDict | None:
-        artifact_file_path = self.artifacts_restoration_path / filename
+    def _save_artifact(self, artifact: StateDict, artifact_path: Path) -> None:
+        self._transactions.append(SaveArtifact(artifact, artifact_path))
 
-        if not artifact_file_path.exists():
-            return None
+    def prepare_transaction(self) -> Transaction:
+        metrics_buffer = self._metrics_buffer
+        transactions = self._transactions
 
-        return torch.load(artifact_file_path, weights_only=True)
+        self._metrics_buffer = []
+        self._transactions = []
 
-    def restore_model(self) -> StateDict | None:
-        return self.restore_artifact(self.model_file_name)
-
-    def restore_optimizer(self) -> StateDict | None:
-        return self.restore_artifact(self.optimizer_file_name)
+        return BatchedTransaction(
+            [
+                SaveMetrics(metrics_buffer, self.paths.metrics),
+                *transactions,
+            ]
+        )
