@@ -34,6 +34,7 @@ def priority_staging_saver[T](saver: Callable[[T, Path], None]):
         saver(data, target)
 
         with open(target, "a") as f:
+            f.flush()
             os.fsync(f.fileno())
 
     return wrapper
@@ -42,14 +43,11 @@ def save_to_yaml(data: JsonDict, target: Path):
         with open(target, "w", encoding="utf-8") as f:
             yaml.dump(data, f)
 
-def priority_save_to_jsonl(lines: Iterable[JsonDict], target: Path) -> None:
+def save_to_jsonl(lines: Iterable[JsonDict], target: Path) -> None:
     with open(target, "a", encoding="utf-8") as f:
         for line in lines:
             json.dump(line, f)
             f.write("\n")
-
-            f.flush()
-            os.fsync(f.fileno())
 
 
 def load_from_jsonl(source: Path) -> Iterable[JsonDict]:

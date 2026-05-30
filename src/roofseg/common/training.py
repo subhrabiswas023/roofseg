@@ -75,6 +75,5 @@ def train[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass](
         artifact_tracker.save_model(module.model_state_dict())
         artifact_tracker.save_optimizer(module.optimizer_state_dict())
         
-        transaction.stage()
-        transaction.commit()
+        transaction.stage().commit()
         

@@ -29,8 +29,4 @@ class ConfusionMatrix:
             tn=count_pixels(pred, label, 0, 0),
             fn=count_pixels(pred, label, 0, 1),
         )
-
-
-@dataclass(frozen=True)
-class CommitData(Dataclass):
-    epoch: int
+        

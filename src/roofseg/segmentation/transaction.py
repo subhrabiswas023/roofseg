@@ -1,35 +1,37 @@
+from functools import cached_property
 import os
 from typing import Iterable, override
 from pathlib import Path
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import torch
 
-from roofseg.common.tracking import priority_save_to_jsonl, priority_staging_saver
+from roofseg.common.tracking import priority_staging_saver, save_to_jsonl
 from roofseg.common.typing import JsonDict, StateDict
-from roofseg.common.transaction import Transaction
+from roofseg.common.transaction import Transaction, StagedTransaction
 
 
-@dataclass
-class SaveArtifact(Transaction):
-    artifact: StateDict | None
+def get_tmp_path(source_path: Path) -> Path:
+    return source_path.with_suffix(".tmp")
+
+
+def get_manifest_path(source_path: Path) -> Path:
+    return source_path.with_suffix(".manifest.txt")
+
+
+@dataclass(frozen=True)
+class StagedSaveArtifact(StagedTransaction):
     target_path: Path
-    tmp_path: Path = field(init=False)
-    
-    def __post_init__(self) -> None:
-        self.tmp_path = self.target_path.with_suffix(".tmp")
 
-    @override
-    def stage(self) -> None:
-        if not self.artifact:
-            return
-        priority_staging_saver(torch.save)(self.artifact, self.target_path)
+    @cached_property
+    def tmp_path(self) -> Path:
+        return get_tmp_path(self.target_path)
 
     @override
     def commit(self) -> None:
         os.replace(self.tmp_path, self.target_path)
-    
-    @property 
+
+    @property
     @override
     def is_failed(self) -> bool:
         return self.tmp_path.exists()
@@ -37,39 +39,37 @@ class SaveArtifact(Transaction):
     @override
     def recover_if_failed(self) -> None:
         if self.is_failed:
-            os.remove(self.tmp_path)
-
-
-@dataclass
-class SaveMetrics(Transaction):
-    metrics: Iterable[JsonDict] | None
-    target_path: Path
-    manifest_path: Path = field(init=False)
-
-    def __post_init__(self) -> None:
-        self.manifest_path = self.target_path.with_suffix(".manifest.txt")
-
-    @override
-    def stage(self) -> None:
-        if not self.metrics:
             return
         
-        offset = self.target_path.stat().st_size if self.target_path.exists() else 0
-        with open(self.manifest_path, "w", encoding="utf-8") as f:
-            f.write(str(offset))
-            
-            f.flush()
-            os.fsync(f.fileno())
+        os.remove(self.tmp_path)
 
-        priority_save_to_jsonl(self.metrics, self.target_path)
+
+@dataclass(frozen=True)
+class SaveArtifact(Transaction):
+    artifact: StateDict
+    target_path: Path
+
+    @override
+    def stage(self) -> StagedSaveArtifact:
+        priority_staging_saver(torch.save)(
+            self.artifact, get_tmp_path(self.target_path)
+        )
+        return StagedSaveArtifact(self.target_path)
+
+
+@dataclass(frozen=True)
+class StagedSaveMetrics(StagedTransaction):
+    target_path: Path
+
+    @cached_property
+    def manifest_path(self) -> Path:
+        return get_manifest_path(self.target_path)
 
     @override
     def commit(self) -> None:
-        if self.manifest_path.exists():
+        if not self.manifest_path.exists():
             return
-        os.remove(
-            self.manifest_path
-        )  # FIXME: We assume that the "commit" is called after "stage". So, the manifest path always exists. A future implementation of state machine will make it better.
+        os.remove(self.manifest_path)
 
     @property
     @override
@@ -86,7 +86,30 @@ class SaveMetrics(Transaction):
                 safe_offset = int(f.read())
                 with open(self.target_path, "a") as f:
                     f.truncate(safe_offset)
+
+                    f.flush()
+                    os.fsync(f.fileno())
         except ValueError:
             pass  # manifest corrupted, the target file's change is intact
         finally:
             os.remove(self.manifest_path)
+
+
+@dataclass(frozen=True)
+class SaveMetrics(Transaction):
+    metrics: Iterable[JsonDict]
+    target_path: Path
+
+    @override
+    def stage(self) -> StagedSaveMetrics:
+        manifest_path = get_manifest_path(self.target_path)
+        offset = self.target_path.stat().st_size if self.target_path.exists() else 0
+        with open(manifest_path, "w", encoding="utf-8") as f:
+            f.write(str(offset))
+
+            f.flush()
+            os.fsync(f.fileno())
+
+        priority_staging_saver(save_to_jsonl)(self.metrics, self.target_path)
+
+        return StagedSaveMetrics(self.target_path)

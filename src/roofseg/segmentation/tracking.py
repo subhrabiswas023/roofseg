@@ -4,7 +4,6 @@ from typing import override
 from dataclasses import dataclass, field
 
 import torch
-import yaml
 
 from roofseg.common.tracking import (
     ArtifactTracker,
@@ -14,9 +13,9 @@ from roofseg.common.tracking import (
     load_from_jsonl,
     save_to_yaml,
 )
-from roofseg.common.transaction import BatchedTransaction, Transaction
+from roofseg.common.transaction import BatchedTransaction, StagedBatchedTransaction, Transaction
 from roofseg.common.typing import JsonDict, StateDict
-from roofseg.segmentation.transaction import SaveArtifact, SaveMetrics
+from roofseg.segmentation.transaction import SaveArtifact, SaveMetrics, StagedSaveMetrics, StagedSaveArtifact
 
 
 @dataclass(frozen=True)
@@ -55,11 +54,11 @@ class LocalRestorer(MetricRestorer[JsonDict], ArtifactRestorer[StateDict]):
     paths: PathContext
 
     def __post_init__(self):
-        BatchedTransaction(
+        StagedBatchedTransaction(
             [
-                SaveMetrics(None, self.paths.metrics),
-                SaveArtifact(None, self.paths.model),
-                SaveArtifact(None, self.paths.optimizer),
+                StagedSaveMetrics(self.paths.metrics),
+                StagedSaveArtifact(self.paths.model),
+                StagedSaveArtifact(self.paths.optimizer),
             ]
         ).recover_if_failed()
 

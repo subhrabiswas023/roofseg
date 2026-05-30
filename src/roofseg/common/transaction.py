@@ -2,23 +2,22 @@ from dataclasses import dataclass, field
 from typing import Protocol, override
 
 
-class Transaction(Protocol):
+class StagedTransaction(Protocol):
     @property
     def is_failed(self) -> bool: ...
-    def stage(self) -> None: ...
     def commit(self) -> None: ...
     def recover_if_failed(self) -> None: ...
 
 
-@dataclass
-class BatchedTransaction(Transaction):
-    transactions: list[Transaction] = field(default_factory=list)
+class Transaction(Protocol):
+    def stage(self) -> StagedTransaction: ...
 
-    @override
-    def stage(self) -> None:
-        for tx in self.transactions:
-            tx.stage()
 
+       
+@dataclass      
+class StagedBatchedTransaction(StagedTransaction):
+    transactions: list[StagedTransaction] = field(default_factory=list)
+    
     @override
     def commit(self) -> None:
         for tx in self.transactions:
@@ -43,3 +42,12 @@ class BatchedTransaction(Transaction):
         else:
             for tx in self.transactions:
                 tx.commit()
+
+
+@dataclass
+class BatchedTransaction(Transaction):
+    transactions: list[Transaction] = field(default_factory=list)
+
+    @override
+    def stage(self) -> StagedBatchedTransaction:
+        return StagedBatchedTransaction([tx.stage() for tx in self.transactions])
