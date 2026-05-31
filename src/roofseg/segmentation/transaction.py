@@ -38,7 +38,7 @@ class StagedSaveArtifact(StagedTransaction):
 
     @override
     def recover_if_failed(self) -> None:
-        if self.is_failed:
+        if not self.is_failed:
             return
         
         os.remove(self.tmp_path)
