@@ -1,13 +1,13 @@
+from dataclasses import dataclass
 from typing import Self, override
 
-from dataclasses import dataclass
 import torch
 from torch import nn, optim
 
 from roofseg.common import training
 from roofseg.common.typing import Dataclass, StateDict
-from roofseg.segmentation.typing import BatchedImageTensor, BatchedMaskTensor
 from roofseg.segmentation.metrics import ConfusionMatrix
+from roofseg.segmentation.typing import BatchedImageTensor, BatchedMaskTensor
 
 
 @dataclass(frozen=True)
@@ -40,6 +40,7 @@ class Module(training.Module[BatchedImageTensor, BatchedMaskTensor, BatchMetrics
     def model_state_dict(self) -> StateDict:
         return self._model.state_dict()
 
+    @override
     def optimizer_state_dict(self) -> StateDict:
         return self._optimizer.state_dict()
 

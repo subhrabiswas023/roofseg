@@ -1,15 +1,14 @@
 """Module for loading and processing the dataset."""
 
-from typing import override
-from functools import lru_cache
 from collections.abc import Callable
+from functools import lru_cache
 from pathlib import Path
+from typing import Sequence, override
 
 import numpy as np
-
 import torch
-from torch.utils.data import Dataset
 from PIL import Image
+from torch.utils.data import Dataset
 
 from roofseg.common.data import get_indices, patchify
 from roofseg.segmentation.typing import ImageArray, MaskArray, PairedTensor
@@ -18,7 +17,7 @@ from roofseg.segmentation.typing import ImageArray, MaskArray, PairedTensor
 class PatchedDataset(Dataset[PairedTensor]):
     def __init__(
         self,
-        image_paths: list[Path],
+        image_paths: Sequence[Path],
         get_mask_path_from_image_path: Callable[[Path], Path],
         image_width: int,
         image_height: int,

@@ -1,21 +1,30 @@
+from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
 from typing import override
-from dataclasses import dataclass, field
 
 import torch
 
 from roofseg.common.tracking import (
-    ArtifactTracker,
     ArtifactRestorer,
-    MetricTracker,
+    ArtifactTracker,
     MetricRestorer,
+    MetricTracker,
     load_from_jsonl,
     save_to_yaml,
 )
-from roofseg.common.transaction import BatchedTransaction, StagedBatchedTransaction, Transaction
+from roofseg.common.transaction import (
+    BatchedTransaction,
+    StagedBatchedTransaction,
+    Transaction,
+)
 from roofseg.common.typing import JsonDict, StateDict
-from roofseg.segmentation.transaction import SaveArtifact, SaveMetrics, StagedSaveMetrics, StagedSaveArtifact
+from roofseg.segmentation.transaction import (
+    SaveArtifact,
+    SaveMetrics,
+    StagedSaveArtifact,
+    StagedSaveMetrics,
+)
 
 
 @dataclass(frozen=True)
@@ -95,8 +104,8 @@ class LocalRestorer(MetricRestorer[JsonDict], ArtifactRestorer[StateDict]):
 @dataclass
 class LocalTracker(MetricTracker[JsonDict], ArtifactTracker[StateDict]):
     paths: PathContext
-    _metrics_buffer: list[JsonDict] = field(default_factory=list)
-    _transactions: list[Transaction] = field(default_factory=list)
+    _metrics_buffer: list[JsonDict] = field(init=False, default_factory=list)
+    _transactions: list[Transaction] = field(init=False, default_factory=list)
 
     def __post_init__(self):
         self.paths.root_dir.mkdir(parents=True, exist_ok=True)

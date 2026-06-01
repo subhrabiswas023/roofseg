@@ -5,10 +5,10 @@
 # global scope before any local package imports are evaluated.
 # =====================================================================
 
-from pathlib import Path
+import importlib
 import subprocess
 import sys
-import importlib
+from pathlib import Path
 
 IS_KAGGLE = Path("/kaggle/working").exists()
 

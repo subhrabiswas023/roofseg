@@ -1,6 +1,8 @@
-import torch
-import segmentation_models_pytorch as smp
 from typing import override
+
+import segmentation_models_pytorch as smp
+import torch
+
 
 class CombinedLoss(torch.nn.Module):
     """Focal and dice loss added with the proportion of alpha"""

@@ -1,7 +1,7 @@
+import kornia.augmentation as K
 import torch
 
 from roofseg.segmentation.transforms import SyncedImageMaskTransform
-import kornia.augmentation as K
 
 
 class TestSyncedImageMaskTransform:

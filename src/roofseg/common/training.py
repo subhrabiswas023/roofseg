@@ -5,9 +5,9 @@ from typing import Protocol, Self
 import torch
 from torch.utils.data import DataLoader
 
+from roofseg.common.tracking import ArtifactTracker, MetricRestorer, MetricTracker
 from roofseg.common.transaction import Transaction
 from roofseg.common.typing import Dataclass, JsonDict, StateDict
-from roofseg.common.tracking import ArtifactTracker, MetricRestorer, MetricTracker
 
 
 class Phase(StrEnum):
@@ -49,26 +49,26 @@ def train[InputT: torch.Tensor, LabelT: torch.Tensor, MetricT: Dataclass](
 
     for epoch in range(start_epoch, num_epochs):
         for batch_idx, (inputs, labels) in enumerate(train_loader):
-            last_metrics = module.train_step(inputs.to(device), labels.to(device))
+            metrics = module.train_step(inputs.to(device), labels.to(device))
 
             metric_tracker.log_metrics(
                 TrainMetrics(
                     epoch=epoch,
                     batch=batch_idx,
                     phase=Phase.TRAIN,
-                    metrics=last_metrics,
+                    metrics=metrics,
                 ).to_dict()
             )
 
         for batch_idx, (inputs, labels) in enumerate(val_loader):
-            last_metrics = module.validation_step(inputs.to(device), labels.to(device))
+            metrics = module.validation_step(inputs.to(device), labels.to(device))
 
             metric_tracker.log_metrics(
                 TrainMetrics(
                     epoch=epoch,
                     batch=batch_idx,
                     phase=Phase.VAL,
-                    metrics=last_metrics,
+                    metrics=metrics,
                 ).to_dict()
             )
 

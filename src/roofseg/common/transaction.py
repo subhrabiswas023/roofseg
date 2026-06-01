@@ -14,7 +14,7 @@ class Transaction(Protocol):
 
 
        
-@dataclass      
+@dataclass(frozen=True)  
 class StagedBatchedTransaction(StagedTransaction):
     transactions: list[StagedTransaction] = field(default_factory=list)
     
@@ -44,7 +44,7 @@ class StagedBatchedTransaction(StagedTransaction):
                 tx.commit()
 
 
-@dataclass
+@dataclass(frozen=True)
 class BatchedTransaction(Transaction):
     transactions: list[Transaction] = field(default_factory=list)
 

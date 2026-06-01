@@ -1,17 +1,17 @@
 from functools import partial
 from pathlib import Path
 
+import kornia.augmentation as K
 import numpy as np
+import segmentation_models_pytorch as smp
 import torch
 from torch.utils.data import DataLoader
-import kornia.augmentation as K
-import segmentation_models_pytorch as smp
 
 from roofseg.common.training import Phase
 from roofseg.segmentation.config import Config
 from roofseg.segmentation.data import PatchedDataset
-from roofseg.segmentation.transforms import SyncedImageMaskTransform
 from roofseg.segmentation.losses import CombinedLoss
+from roofseg.segmentation.transforms import SyncedImageMaskTransform
 from roofseg.segmentation.typing import PairedTensor
 
 

@@ -1,14 +1,14 @@
-from functools import cached_property
 import os
-from typing import Iterable, override
-from pathlib import Path
 from dataclasses import dataclass
+from functools import cached_property
+from pathlib import Path
+from typing import Iterable, override
 
 import torch
 
 from roofseg.common.tracking import priority_staging_saver, save_to_jsonl
+from roofseg.common.transaction import StagedTransaction, Transaction
 from roofseg.common.typing import JsonDict, StateDict
-from roofseg.common.transaction import Transaction, StagedTransaction
 
 
 def get_tmp_path(source_path: Path) -> Path:

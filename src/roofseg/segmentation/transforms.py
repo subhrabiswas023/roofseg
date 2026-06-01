@@ -2,10 +2,11 @@ from typing import override
 
 import torch
 
+
 class SyncedImageMaskTransform(torch.nn.Module):
     """Stacks image and mask tensor for performing random augmentation together, then returns the final image and mask"""
 
-    def __init__(self, spatial_transform):
+    def __init__(self, spatial_transform: torch.nn.Module):
         super().__init__()
         self.spatial_transform = spatial_transform
 

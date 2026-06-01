@@ -13,7 +13,7 @@ class EnvironmentConfig:
 # Dataset parameters
 @dataclass(frozen=True)
 class DatasetConfig:
-    root_dir: str = "/kaggle/input/inria-rooftop-segmentation-dataset-1024x1024-png"  # FIX ME: hardcoded path for now. Only depends on kaggle environment
+    root_dir: str = "/kaggle/input/inria-rooftop-segmentation-dataset-1024x1024-png"  # FIXME: hardcoded path for now. Only depends on kaggle environment
     image_dir: str = "images"
     mask_dir: str = "masks"
 

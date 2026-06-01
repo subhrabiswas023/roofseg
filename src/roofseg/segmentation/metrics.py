@@ -3,7 +3,6 @@ from typing import Self
 
 import torch
 
-from roofseg.common.typing import Dataclass
 
 def count_pixels(
     pred: torch.Tensor,
@@ -29,4 +28,3 @@ class ConfusionMatrix:
             tn=count_pixels(pred, label, 0, 0),
             fn=count_pixels(pred, label, 0, 1),
         )
-        

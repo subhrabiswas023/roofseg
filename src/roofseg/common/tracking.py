@@ -1,9 +1,9 @@
 import json
 import os
-from typing import Iterable, Protocol
 from collections.abc import Callable
-from pathlib import Path
 from functools import wraps
+from pathlib import Path
+from typing import Iterable, Protocol
 
 import yaml
 

@@ -1,12 +1,12 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
+import segmentation_models_pytorch as smp
 import torch
-
-from pathlib import Path
 from PIL import Image
 
 from roofseg.segmentation.data import PatchedDataset
-from roofseg.segmentation.model import build_model
 from roofseg.segmentation.losses import CombinedLoss
 
 # Some data
@@ -58,14 +58,14 @@ def dataset(tmp_path: Path) -> PatchedDataset:
 # training fixtures
 
 @pytest.fixture
-def model():
-    return build_model("mobilenet_v2", "imagenet", 2)
+def model() -> torch.nn.Module:
+    return smp.Unet()
 
 @pytest.fixture
-def optimizer(model: torch.nn.Module):
+def optimizer(model: torch.nn.Module) -> torch.optim.Optimizer:
     return torch.optim.Adam(model.parameters(), lr=0.001)
 
 @pytest.fixture(scope="session")
-def criterion():
+def criterion() -> torch.nn.Module:
     return CombinedLoss(alpha=0.5, mode="multiclass")
     
