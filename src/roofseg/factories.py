@@ -24,22 +24,18 @@ def setup_environment(config: Config) -> torch.device:
 
 
 def _build_loader(phase: Phase, config: Config) -> DataLoader[PairedTensor]:
-    DeployableDataset = partial(
-        PatchedDataset,
-        image_width=config.dataset.image_width,
-        image_height=config.dataset.image_height,
-        color_threshold=config.dataset.color_threshold,
-        patch_size=config.dataset.patch_size,
-    )
-
-    phase_path = Path(config.dataset.root_dir) / phase
+    phase_path = Path(config.environment.input_dir + config.dataset.root_dir) / phase
     image_dir = phase_path / config.dataset.image_dir
     mask_dir = phase_path / config.dataset.mask_dir
 
     return DataLoader(
-        DeployableDataset(
+        PatchedDataset(
             image_paths=list(image_dir.iterdir()),
             get_mask_path_from_image_path=lambda p: mask_dir / p.name,
+            image_width=config.dataset.image_width,
+            image_height=config.dataset.image_height,
+            color_threshold=config.dataset.color_threshold,
+            patch_size=config.dataset.patch_size,
         ),
         batch_size=config.training.batch_size,
         shuffle=phase == Phase.TRAIN,

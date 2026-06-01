@@ -8,12 +8,13 @@ from roofseg.common.typing import Dataclass
 class EnvironmentConfig:
     seed: int = 42
     device: str = "cuda"
+    input_dir: str = "/kaggle/input/"
 
 
 # Dataset parameters
 @dataclass(frozen=True)
 class DatasetConfig:
-    root_dir: str = "/kaggle/input/inria-rooftop-segmentation-dataset-1024x1024-png"  # FIXME: hardcoded path for now. Only depends on kaggle environment
+    root_dir: str = "inria-rooftop-segmentation-dataset-1024x1024-png"
     image_dir: str = "images"
     mask_dir: str = "masks"
 
