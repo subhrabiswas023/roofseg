@@ -24,7 +24,7 @@ def setup_environment(config: Config) -> torch.device:
 
 
 def _build_loader(phase: Phase, config: Config) -> DataLoader[PairedTensor]:
-    phase_path = Path(config.environment.input_dir + config.dataset.root_dir) / phase
+    phase_path = Path(config.environment.input_dir) / config.dataset.root_dir / phase
     image_dir = phase_path / config.dataset.image_dir
     mask_dir = phase_path / config.dataset.mask_dir
 
@@ -69,4 +69,4 @@ def build_criterion(config: Config) -> torch.nn.Module:
 
 
 def build_optimizer(config: Config, model: torch.nn.Module) -> torch.optim.Optimizer:
-    return torch.optim.Adam(model.parameters(), lr=config.optimizer.learning_rate)
+    return torch.optim.AdamW(model.parameters(), lr=config.optimizer.learning_rate, weight_decay=config.optimizer.weight_decay)

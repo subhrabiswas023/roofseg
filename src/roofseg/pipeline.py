@@ -4,7 +4,7 @@ from typing import Callable
 import torch
 from torch.utils.data import DataLoader
 
-import roofseg.factories as factories
+from roofseg import factories
 from roofseg.common.training import train
 from roofseg.segmentation.config import Config
 from roofseg.segmentation.tracking import LocalRestorer, LocalTracker, PathContext

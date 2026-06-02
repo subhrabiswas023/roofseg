@@ -8,7 +8,7 @@ from roofseg.common.typing import Dataclass
 class EnvironmentConfig:
     seed: int = 42
     device: str = "cuda"
-    input_dir: str = "/kaggle/input/"
+    input_dir: str = "kaggle/input"
 
 
 # Dataset parameters
@@ -52,13 +52,14 @@ class CriterionConfig:
 class OptimizerConfig:
     optimizer: str = "AdamW"
     learning_rate: float = 1e-3
+    weight_decay: float = 1e-2
 
 
 # Training parameters
 @dataclass(frozen=True)
 class TrainingConfig:
     batch_size: int = 16
-    num_epochs: int = 1
+    num_epochs: int = 20
 
 
 @dataclass(frozen=True)
