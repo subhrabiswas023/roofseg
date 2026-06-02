@@ -1,8 +1,8 @@
 import torch
 
 
-def test_model_output_shape(model):
+def test_model_output_shape(mock_model):
     input = torch.randn(2, 3, 256, 256)
-    output = model(input)
+    output = mock_model(input)
 
     assert output.shape == (2, 2, 256, 256)

@@ -1,13 +1,12 @@
 import numpy as np
 import pytest
 import torch
-from torch.utils.data import Dataset
 
 from roofseg.common.data import get_indices, patchify
 
 
-def test_dataset(dataset: Dataset):
-    image_tensor, mask_tensor = dataset[0]
+def test_dataset(mock_dataset):
+    image_tensor, mask_tensor = mock_dataset[0]
 
     assert image_tensor.shape == (3, 256, 256)  # C, H, W
     assert mask_tensor.shape == (256, 256)  # H, W

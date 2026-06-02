@@ -1,13 +1,13 @@
-from pathlib import Path
-
 import numpy as np
 import pytest
-import segmentation_models_pytorch as smp
 import torch
 from PIL import Image
+from torch import nn, optim
+from torch.utils.data import Dataset
 
+from roofseg.factories import build_criterion, build_model, build_optimizer
+from roofseg.segmentation.config import Config, EnvironmentConfig, TrainingConfig
 from roofseg.segmentation.data import PatchedDataset
-from roofseg.segmentation.losses import CombinedLoss
 
 # Some data
 
@@ -20,19 +20,19 @@ def random_masks():
     return torch.randint(0, 2, (2, 256, 256))
 
 @pytest.fixture(scope="session")
-def images():
+def mock_images():
     image = torch.zeros((1, 3, 2, 2), dtype=torch.float32)
     image[:, :, 0, 0] = 1.0
     return image
 
 @pytest.fixture(scope="session")
-def masks():
+def mock_masks():
     mask = torch.zeros((1, 2, 2), dtype=torch.int64)
     mask[:, 0, 0] = 1
     return mask
 
 @pytest.fixture
-def dataset(tmp_path: Path) -> PatchedDataset:
+def mock_dataset(tmp_path) -> Dataset:
     image_dir = tmp_path / "images"
     mask_dir = tmp_path / "masks"
 
@@ -55,17 +55,28 @@ def dataset(tmp_path: Path) -> PatchedDataset:
     )
     return dataset
 
-# training fixtures
+@pytest.fixture(scope="session")
+def mock_config() -> Config:
+    return Config(
+       environment=EnvironmentConfig(
+           device="cpu"
+       ),
+       training=TrainingConfig(
+           batch_size=1,
+           num_epochs=1
+       )
+    )
+    
+@pytest.fixture(scope="session")
+def mock_criterion(mock_config) -> nn.Module:
+    return build_criterion(mock_config)
 
-@pytest.fixture
-def model() -> torch.nn.Module:
-    return smp.Unet()
-
-@pytest.fixture
-def optimizer(model: torch.nn.Module) -> torch.optim.Optimizer:
-    return torch.optim.Adam(model.parameters(), lr=0.001)
+# NOTE: Stale model and optimizer are used to save time because there is no test for the parameter values
+    
+@pytest.fixture(scope="session")
+def mock_model(mock_config) -> nn.Module:
+    return build_model(mock_config)
 
 @pytest.fixture(scope="session")
-def criterion() -> torch.nn.Module:
-    return CombinedLoss(alpha=0.5, mode="multiclass")
-    
+def mock_optimizer(mock_config, mock_model) -> optim.Optimizer:
+    return build_optimizer(mock_config, mock_model)
