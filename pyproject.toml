@@ -25,13 +25,13 @@ classifiers = [
 
 [build-system]
 requires = [
-    "setuptools>=80",
-    "setuptools-scm>=8"
+    "hatchling",
+    "hatch-vcs"
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "hatchling.build"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.version]
+source = "vcs"
 
 [tool.pytest.ini_options]
 addopts = "-v -s -ra --strict-markers"
