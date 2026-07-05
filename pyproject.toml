@@ -3,39 +3,56 @@ name = "rooftop-segmentation"
 dynamic = ["version"]
 description = "Rooftop segmentation research pipeline"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12, <3.13"
 
-authors=[
-    {name = "Subhra Biswas"}
-]
+authors = [{ name = "Subhra Biswas" }]
 
 keywords = [
     "computer-vision",
     "segmentation",
     "deep-learning",
     "transfer-learning",
-    "research"
+    "research",
 ]
 
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
-    "Intended Audience :: Science/Research"
+    "Intended Audience :: Science/Research",
 ]
 
-[build-system]
-requires = [
-    "hatchling",
-    "hatch-vcs"
+dependencies = [
+    "pyyaml>=6",
+    "jaxtyping>=0.2",
+    "numpy>=2",
+    "torch>=2",
+    "kornia>=0.7",
+    "segmentation-models-pytorch>=0.4",
 ]
-build-backend = "hatchling.build"
 
-[tool.hatch.version]
-source = "vcs"
+[project.optional-dependencies]
+test = ["pytest>=8", "pytest-cov>=3"]
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+test = { features = ["test"], solve-group = "default" }
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64", "win-64"]
+
+[tool.pixi.dependencies]
+python = ">=3.12, <3.13"
+
+[tool.pixi.pypi-dependencies]
+rooftop-segmentation = { path = ".", editable = true }
+
+[tool.pixi.tasks]
+test = "pytest"
+coverage = "pytest --cov"
 
 [tool.pytest.ini_options]
 addopts = "-v -s -ra --strict-markers"
-pythonpath = [".", "src"]
 testpaths = ["tests"]
 
 python_files = "test_*.py"
@@ -49,12 +66,19 @@ markers = [
     "slow: tests that take significant time",
 ]
 
-[tool.pylint.main]
-source-roots = ["src"]
-
 [tool.ruff]
 src = ["src"]
 target-version = "py312"
 
 [tool.pyright]
 extraPaths = ["src"]
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/roofseg"]

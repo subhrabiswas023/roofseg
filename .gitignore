@@ -8,12 +8,14 @@ __pycache__/
 .ruff_cache/
 *.py[cod]
 *$py.class
+*.coverage
 
 # Environments
 venv/
 .venv/
 env/
 .env/
+.pixi/
 
 # Local Secrets
 .env
