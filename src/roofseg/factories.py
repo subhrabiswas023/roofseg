@@ -11,6 +11,7 @@ from roofseg.common.training import Phase
 from roofseg.segmentation.config import Config
 from roofseg.segmentation.data import PatchedDataset
 from roofseg.segmentation.losses import CombinedLoss
+from roofseg.segmentation.attentions import CoordinateAttention, EfficientChannelAttention
 from roofseg.segmentation.transforms import SyncedImageMaskTransform
 from roofseg.segmentation.typing import PairedTensor
 
@@ -57,11 +58,22 @@ def build_transformer(config: Config) -> torch.nn.Module:
 
 
 def build_model(config: Config) -> torch.nn.Module:
-    return smp.Unet(
+    model = smp.UnetPlusPlus(
         config.model.encoder_name,
         encoder_weights=config.model.encoder_weights,
         classes=config.dataset.num_classes,
     )
+    
+    in_channels = model.segmentation_head[0].in_channels
+    
+    model.segmentation_head = torch.nn.Sequential( # type: ignore
+        EfficientChannelAttention(channels=in_channels), # type: ignore
+        CoordinateAttention(channels=in_channels), # type: ignore
+        torch.nn.Dropout2d(p=config.regularization.dropout),
+        model.segmentation_head
+    )
+    
+    return model
 
 
 def build_criterion(config: Config) -> torch.nn.Module:

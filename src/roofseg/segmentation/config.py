@@ -45,7 +45,11 @@ class ModelConfig:
 class CriterionConfig:
     criterion: str = "CombinedLoss"
     loss_alpha: float = 0.5
-
+    
+# Regularization
+@dataclass(frozen=True)
+class RegularizationConfig:
+    dropout: float = 0.1
 
 # Optimizer parameters
 @dataclass(frozen=True)
@@ -71,5 +75,6 @@ class Config(Dataclass):
     model: ModelConfig = ModelConfig()
 
     criterion: CriterionConfig = CriterionConfig()
+    regularization: RegularizationConfig = RegularizationConfig()
     optimizer: OptimizerConfig = OptimizerConfig()
     training: TrainingConfig = TrainingConfig()
