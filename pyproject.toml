@@ -49,7 +49,7 @@ rooftop-segmentation = { path = ".", editable = true }
 
 [tool.pixi.tasks]
 test = "pytest"
-coverage = "pytest --cov"
+coverage = "pytest --cov=roofseg --cov-report=xml --cov-report=term-missing"
 
 [tool.pytest.ini_options]
 addopts = "-v -s -ra --strict-markers"
