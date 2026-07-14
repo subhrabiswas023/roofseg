@@ -21,7 +21,7 @@ def test_pipeline(
         environment_setter=factories.setup_environment,
         train_loader_factory=lambda _: DataLoader(mock_dataset),
         val_loader_factory=lambda _: DataLoader(mock_dataset),
-        transformer_factory=factories.build_transformer,
+        transformer_factory=factories.build_train_transformer,
         model_factory=factories.build_model,
         criterion_factory=factories.build_criterion,
         optimizer_factory=factories.build_optimizer,

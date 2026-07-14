@@ -20,19 +20,22 @@ class Module(training.Module[BatchedImageTensor, BatchedMaskTensor, BatchMetrics
     def __init__(
         self,
         model: nn.Module,
-        transform: nn.Module,
+        train_transform: nn.Module,
+        val_transform: nn.Module,
         criterion: nn.Module,
         optimizer: optim.Optimizer,
     ):
         self._model = model
-        self._transform = transform
+        self._train_transform = train_transform
+        self._val_transform = val_transform
         self._criterion = criterion
         self._optimizer = optimizer
 
     @override
     def to(self, device: torch.device) -> Self:
         self._model = self._model.to(device)
-        self._transform = self._transform.to(device)
+        self._train_transform = self._train_transform.to(device)
+        self._val_transform = self._val_transform.to(device)
         self._criterion = self._criterion.to(device)
         return self
 
@@ -52,7 +55,7 @@ class Module(training.Module[BatchedImageTensor, BatchedMaskTensor, BatchMetrics
     ) -> BatchMetrics:
         self._model.train()
 
-        inputs, labels = self._transform(inputs, labels)
+        inputs, labels = self._train_transform(inputs, labels)
 
         self._optimizer.zero_grad()
 
@@ -81,6 +84,8 @@ class Module(training.Module[BatchedImageTensor, BatchedMaskTensor, BatchMetrics
         self._model.eval()
 
         with torch.inference_mode():
+            inputs, labels = self._val_transform(inputs, labels)
+            
             logits = self._model(inputs)
             loss = self._criterion(logits, labels)
 

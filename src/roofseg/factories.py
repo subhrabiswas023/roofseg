@@ -12,7 +12,7 @@ from roofseg.segmentation.config import Config
 from roofseg.segmentation.data import PatchedDataset
 from roofseg.segmentation.losses import CombinedLoss
 from roofseg.segmentation.attentions import CoordinateAttention, EfficientChannelAttention
-from roofseg.segmentation.transforms import SyncedImageMaskTransform
+from roofseg.segmentation.transforms import Scale, SyncedImageMaskTransform
 from roofseg.segmentation.typing import PairedTensor
 
 
@@ -45,17 +45,26 @@ def _build_loader(phase: Phase, config: Config) -> DataLoader[PairedTensor]:
 
 
 build_train_loader = partial(_build_loader, phase=Phase.TRAIN)
-build_val_loader = partial(_build_loader, phase=Phase.VAL)
+build_val_loader = partial(_build_loader, phase=Phase.VAL)    
 
 
-def build_transformer(config: Config) -> torch.nn.Module:
-    return SyncedImageMaskTransform(
-        spatial_transform=torch.nn.Sequential(
-            K.RandomHorizontalFlip(p=config.augmentation.horizontal_flip_prob),
-            K.RandomVerticalFlip(p=config.augmentation.vertical_flip_prob),
-        )
+def _build_transformer(phase: Phase, config: Config) -> torch.nn.Module:
+    MEAN = (0.485, 0.456, 0.406)
+    STD = (0.229, 0.224, 0.225)
+    
+    return torch.nn.Sequential(
+        Scale(),
+        SyncedImageMaskTransform(
+            spatial_transform=torch.nn.Sequential(
+                K.RandomHorizontalFlip(p=config.augmentation.horizontal_flip_prob),
+                K.RandomVerticalFlip(p=config.augmentation.vertical_flip_prob),
+            )
+        ) if phase.TRAIN else torch.nn.Identity(),
+        K.Normalize(mean=torch.tensor(MEAN), std=torch.tensor(STD)),
     )
 
+build_train_transformer = partial(_build_transformer, phase=Phase.TRAIN)
+build_val_transformer = partial(_build_transformer, phase=Phase.VAL)
 
 def build_model(config: Config) -> torch.nn.Module:
     model = smp.UnetPlusPlus(

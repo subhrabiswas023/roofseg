@@ -2,6 +2,15 @@ from typing import override
 
 import torch
 
+from roofseg.segmentation.typing import BatchedImageTensor, BatchedMaskTensor
+
+class Scale(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+       
+    @override 
+    def forward(self, input: BatchedImageTensor):
+        return input / 255.0
 
 class SyncedImageMaskTransform(torch.nn.Module):
     """Stacks image and mask tensor for performing random augmentation together, then returns the final image and mask"""
@@ -11,7 +20,7 @@ class SyncedImageMaskTransform(torch.nn.Module):
         self.spatial_transform = spatial_transform
 
     @override
-    def forward(self, image, mask):
+    def forward(self, image: BatchedImageTensor, mask: BatchedMaskTensor):
         mask = mask.unsqueeze(1).float()
         stacked = torch.cat([image, mask], dim=1)
 
