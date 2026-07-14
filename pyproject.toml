@@ -1,5 +1,5 @@
 [project]
-name = "rooftop-segmentation"
+name = "roofseg"
 dynamic = ["version"]
 description = "Rooftop segmentation research pipeline"
 readme = "README.md"
