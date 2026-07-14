@@ -7,8 +7,8 @@ KAGGLE_NOTEBOOK_SLUG = os.environ["KAGGLE_NOTEBOOK_SLUG"]
 KAGGLE_NOTEBOOK_TITLE = os.environ["KAGGLE_NOTEBOOK_TITLE"]
 
 DEFAULT_KERNEL_METADATA = {
-    "id": f"{KAGGLE_USERNAME}/{KAGGLE_NOTEBOOK_SLUG}", # FIX ME: This should be loaded from environment for transparancy across devices
-    "title": f"{KAGGLE_NOTEBOOK_TITLE}", # !!! Production enviornment secret
+    "id": f"{KAGGLE_USERNAME}/{KAGGLE_NOTEBOOK_SLUG}",
+    "title": f"{KAGGLE_NOTEBOOK_TITLE}",
     "code_file": "bundle.py",
     "language": "python",
     "kernel_type": "script",
