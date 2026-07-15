@@ -45,11 +45,11 @@ platforms = ["linux-64", "win-64"]
 python = ">=3.12, <3.13"
 
 [tool.pixi.pypi-dependencies]
-rooftop-segmentation = { path = ".", editable = true }
+roofseg = { path = ".", editable = true }
 
 [tool.pixi.tasks]
-test = "pytest"
-coverage = "pytest --cov=roofseg --cov-report=xml --cov-report=term-missing"
+test = "python -m pytest"
+coverage = "python -m pytest --cov=roofseg --cov-report=xml --cov-report=term-missing"
 
 [tool.pytest.ini_options]
 addopts = "-v -s -ra --strict-markers"

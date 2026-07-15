@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Self, override
+from typing import Callable, Iterator, Self, override
 
 import torch
 from torch import nn, optim
@@ -23,12 +23,14 @@ class Module(training.Module[BatchedImageTensor, BatchedMaskTensor, BatchMetrics
         train_transform: nn.Module,
         val_transform: nn.Module,
         criterion: nn.Module,
+        loss_regularizer: nn.Module,
         optimizer: optim.Optimizer,
     ):
         self._model = model
         self._train_transform = train_transform
         self._val_transform = val_transform
         self._criterion = criterion
+        self._loss_regularizer = loss_regularizer
         self._optimizer = optimizer
 
     @override
@@ -37,6 +39,7 @@ class Module(training.Module[BatchedImageTensor, BatchedMaskTensor, BatchMetrics
         self._train_transform = self._train_transform.to(device)
         self._val_transform = self._val_transform.to(device)
         self._criterion = self._criterion.to(device)
+        self._loss_regularizer = self._loss_regularizer.to(device)
         return self
 
     @override
@@ -55,14 +58,18 @@ class Module(training.Module[BatchedImageTensor, BatchedMaskTensor, BatchMetrics
     ) -> BatchMetrics:
         self._model.train()
 
-        inputs, labels = self._train_transform(inputs, labels)
+        inputs, labels = self._train_transform((inputs, labels))
 
         self._optimizer.zero_grad()
 
         logits = self._model(inputs)
         loss = self._criterion(logits, labels)
+        
+        trainable_parameters = (p for p in self._model.parameters() if p.requires_grad)
+        penalty = self._loss_regularizer(trainable_parameters)
+        train_loss = loss + penalty
 
-        loss.backward()
+        train_loss.backward()
         self._optimizer.step()
 
         preds = torch.argmax(logits, dim=1)
@@ -84,7 +91,7 @@ class Module(training.Module[BatchedImageTensor, BatchedMaskTensor, BatchMetrics
         self._model.eval()
 
         with torch.inference_mode():
-            inputs, labels = self._val_transform(inputs, labels)
+            inputs, labels = self._val_transform((inputs, labels))
             
             logits = self._model(inputs)
             loss = self._criterion(logits, labels)

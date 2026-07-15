@@ -2,15 +2,18 @@ from typing import override
 
 import torch
 
-from roofseg.segmentation.typing import BatchedImageTensor, BatchedMaskTensor
+from roofseg.segmentation.typing import BatchedImageTensor, PairedBatchedTensor
 
-class Scale(torch.nn.Module):
-    def __init__(self):
+
+class ScaleImage(torch.nn.Module):
+    def __init__(self, factor: float = 255):
         super().__init__()
-       
-    @override 
+        self.factor = factor
+
+    @override
     def forward(self, input: BatchedImageTensor):
-        return input / 255.0
+        return input / self.factor
+
 
 class SyncedImageMaskTransform(torch.nn.Module):
     """Stacks image and mask tensor for performing random augmentation together, then returns the final image and mask"""
@@ -20,7 +23,9 @@ class SyncedImageMaskTransform(torch.nn.Module):
         self.spatial_transform = spatial_transform
 
     @override
-    def forward(self, image: BatchedImageTensor, mask: BatchedMaskTensor):
+    def forward(self, paired_instance: PairedBatchedTensor):
+        image, mask = paired_instance
+
         mask = mask.unsqueeze(1).float()
         stacked = torch.cat([image, mask], dim=1)
 
@@ -31,5 +36,26 @@ class SyncedImageMaskTransform(torch.nn.Module):
 
         image, mask = torch.split(stacked, [image_channels, mask_channels], dim=1)
         mask = mask.squeeze(1).long()
+
+        return image, mask
+
+
+class ImageTransform(torch.nn.Module):
+    def __init__(
+        self,
+        scale_image: torch.nn.Module,
+        synced_image_mask_transform: torch.nn.Module,
+        normalize: torch.nn.Module,
+    ):
+        super().__init__()
+        self.scale_image = scale_image
+        self.inner_transformer = synced_image_mask_transform
+        self.normalize = normalize
+
+    def forward(self, paired_instance: PairedBatchedTensor):
+        image, mask = paired_instance
+        image = self.scale_image(image)
+        image, mask = self.inner_transformer((image, mask))
+        image = self.normalize(image)
 
         return image, mask

@@ -8,7 +8,7 @@ class TestSyncedImageMaskTransform:
     def test_horizontal_flip(self, mock_images, mock_masks):
         transform = SyncedImageMaskTransform(K.RandomHorizontalFlip(p=1.0))
 
-        transformed_image, transformed_mask = transform(mock_images, mock_masks)
+        transformed_image, transformed_mask = transform((mock_images, mock_masks))
 
         expected_image = torch.zeros((1, 3, 2, 2), dtype=torch.float32)
         expected_image[:, :, 0, 1] = 1.0

@@ -12,3 +12,4 @@ BatchedImageTensor = Float[torch.Tensor, "batch channel height width"]
 BatchedMaskTensor = Int[torch.Tensor, "batch height width"]
 
 PairedTensor = tuple[ImageTensor, MaskTensor]
+PairedBatchedTensor = tuple[BatchedImageTensor, BatchedMaskTensor]

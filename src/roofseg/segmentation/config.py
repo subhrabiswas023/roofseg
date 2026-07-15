@@ -28,7 +28,9 @@ class DatasetConfig:
 
 # Augmentation parameters
 @dataclass(frozen=True)
-class AugmentationConfig:
+class TransformationConfig:
+    normalization_mean: tuple = (0.485, 0.456, 0.406)
+    normalization_std: tuple = (0.229, 0.224, 0.225)
     horizontal_flip_prob: float = 0.5
     vertical_flip_prob: float = 0.5
 
@@ -45,11 +47,14 @@ class ModelConfig:
 class CriterionConfig:
     criterion: str = "CombinedLoss"
     loss_alpha: float = 0.5
-    
+    l1_lambda: float = 1e-6
+
+
 # Regularization
 @dataclass(frozen=True)
 class RegularizationConfig:
     dropout: float = 0.1
+
 
 # Optimizer parameters
 @dataclass(frozen=True)
@@ -70,7 +75,7 @@ class TrainingConfig:
 class Config(Dataclass):
     environment: EnvironmentConfig = EnvironmentConfig()
     dataset: DatasetConfig = DatasetConfig()
-    augmentation: AugmentationConfig = AugmentationConfig()
+    transformation: TransformationConfig = TransformationConfig()
 
     model: ModelConfig = ModelConfig()
 

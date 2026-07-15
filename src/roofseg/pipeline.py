@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Callable
 
 import torch
@@ -7,24 +6,28 @@ from torch.utils.data import DataLoader
 from roofseg import factories
 from roofseg.common.training import train
 from roofseg.segmentation.config import Config
-from roofseg.segmentation.tracking import LocalRestorer, LocalTracker, PathContext
+from roofseg.segmentation.tracking import LocalRestorer, LocalTracker
 from roofseg.segmentation.training import Module
 from roofseg.segmentation.typing import PairedTensor
 
 
 def run_training_pipeline[C: Config](
     config: C,
-    tracker: LocalTracker,
-    restorer: LocalRestorer,
-    environment_setter: Callable[[C], torch.device],
-    train_loader_factory: Callable[[C], DataLoader[PairedTensor]],
-    val_loader_factory: Callable[[C], DataLoader[PairedTensor]],
-    train_transformer_factory: Callable[[C], torch.nn.Module],
-    val_transformer_factory: Callable[[C], torch.nn.Module],
-    model_factory: Callable[[C], torch.nn.Module],
-    criterion_factory: Callable[[C], torch.nn.Module],
-    optimizer_factory: Callable[[C, torch.nn.Module], torch.optim.Optimizer],
+    tracker_factory: Callable[[], LocalTracker] = factories.build_tracker,
+    restorer_factory: Callable[[], LocalRestorer] = factories.build_restorer,
+    environment_setter: Callable[[C], torch.device] = factories.setup_environment,
+    train_loader_factory: Callable[[C], DataLoader[PairedTensor]] = factories.build_train_loader,
+    val_loader_factory: Callable[[C], DataLoader[PairedTensor]] = factories.build_val_loader,
+    train_transformer_factory: Callable[[C], torch.nn.Module] = factories.build_train_transformer,
+    val_transformer_factory: Callable[[C], torch.nn.Module] = factories.build_val_transformer,
+    model_factory: Callable[[C], torch.nn.Module] = factories.build_model,
+    criterion_factory: Callable[[C], torch.nn.Module] = factories.build_criterion,
+    loss_regurlarizer_factory: Callable[[C], torch.nn.Module] = factories.build_loss_regularizer,
+    optimizer_factory: Callable[[C, torch.nn.Module], torch.optim.Optimizer] = factories.build_optimizer,
 ) -> None:
+    tracker = tracker_factory()
+    restorer = restorer_factory()
+    
     tracker.save_config(config.to_dict())
     device = environment_setter(config)
 
@@ -44,6 +47,7 @@ def run_training_pipeline[C: Config](
             train_transform=train_transformer_factory(config),
             val_transform=val_transformer_factory(config),
             criterion=criterion_factory(config),
+            loss_regularizer=loss_regurlarizer_factory(config),
             optimizer=optimizer,
         ),
         device=device,
@@ -59,15 +63,5 @@ def run_training_pipeline[C: Config](
 
 def run_default_training_pipeline() -> None:
     run_training_pipeline(
-        config=Config(),
-        tracker=LocalTracker(paths=PathContext(root_dir=Path("out"))),
-        restorer=LocalRestorer(paths=PathContext(root_dir=Path("."))),
-        environment_setter=factories.setup_environment,
-        train_loader_factory=factories.build_train_loader,
-        val_loader_factory=factories.build_val_loader,
-        train_transformer_factory=factories.build_train_transformer,
-        val_transformer_factory=factories.build_val_transformer,
-        model_factory=factories.build_model,
-        criterion_factory=factories.build_criterion,
-        optimizer_factory=factories.build_optimizer,
+        config=Config()
     )

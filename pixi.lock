@@ -784,7 +784,7 @@ packages:
   size: 123561
   timestamp: 1780005858779
 - pypi: .
-  name: rooftop-segmentation
+  name: roofseg
   requires_dist:
   - jaxtyping>=0.2
   - kornia>=0.7

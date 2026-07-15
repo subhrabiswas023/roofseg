@@ -10,10 +10,26 @@ from torch.utils.data import DataLoader
 from roofseg.common.training import Phase
 from roofseg.segmentation.config import Config
 from roofseg.segmentation.data import PatchedDataset
-from roofseg.segmentation.losses import CombinedLoss
-from roofseg.segmentation.attentions import CoordinateAttention, EfficientChannelAttention
-from roofseg.segmentation.transforms import Scale, SyncedImageMaskTransform
+from roofseg.segmentation.losses import CombinedLoss, L1Regularizer
+from roofseg.segmentation.attentions import (
+    CoordinateAttention,
+    EfficientChannelAttention,
+)
+from roofseg.segmentation.tracking import LocalTracker, LocalRestorer, PathContext
+from roofseg.segmentation.transforms import (
+    ScaleImage,
+    SyncedImageMaskTransform,
+    ImageTransform,
+)
 from roofseg.segmentation.typing import PairedTensor
+
+
+def build_tracker():
+    return LocalTracker(paths=PathContext(root_dir=Path("out")))
+
+
+def build_restorer():
+    return LocalRestorer(paths=PathContext(root_dir=Path(".")))
 
 
 def setup_environment(config: Config) -> torch.device:
@@ -24,7 +40,7 @@ def setup_environment(config: Config) -> torch.device:
     return device
 
 
-def _build_loader(phase: Phase, config: Config) -> DataLoader[PairedTensor]:
+def _build_loader(config: Config, phase: Phase) -> DataLoader[PairedTensor]:
     phase_path = Path(config.environment.input_dir) / config.dataset.root_dir / phase
     image_dir = phase_path / config.dataset.image_dir
     mask_dir = phase_path / config.dataset.mask_dir
@@ -45,26 +61,37 @@ def _build_loader(phase: Phase, config: Config) -> DataLoader[PairedTensor]:
 
 
 build_train_loader = partial(_build_loader, phase=Phase.TRAIN)
-build_val_loader = partial(_build_loader, phase=Phase.VAL)    
+build_val_loader = partial(_build_loader, phase=Phase.VAL)
 
 
-def _build_transformer(phase: Phase, config: Config) -> torch.nn.Module:
-    MEAN = (0.485, 0.456, 0.406)
-    STD = (0.229, 0.224, 0.225)
-    
-    return torch.nn.Sequential(
-        Scale(),
-        SyncedImageMaskTransform(
-            spatial_transform=torch.nn.Sequential(
-                K.RandomHorizontalFlip(p=config.augmentation.horizontal_flip_prob),
-                K.RandomVerticalFlip(p=config.augmentation.vertical_flip_prob),
-            )
-        ) if phase.TRAIN else torch.nn.Identity(),
-        K.Normalize(mean=torch.tensor(MEAN), std=torch.tensor(STD)),
+def _build_transformer(
+    config: Config, synced_image_mask_tranform: torch.nn.Module
+) -> torch.nn.Module:
+    return ImageTransform(
+        ScaleImage(),
+        synced_image_mask_tranform,
+        K.Normalize(
+            mean=torch.tensor(config.transformation.normalization_mean),
+            std=torch.tensor(config.transformation.normalization_std),
+        ),
     )
 
-build_train_transformer = partial(_build_transformer, phase=Phase.TRAIN)
-build_val_transformer = partial(_build_transformer, phase=Phase.VAL)
+
+def build_train_transformer(config: Config) -> torch.nn.Module:
+    return _build_transformer(
+        config,
+        SyncedImageMaskTransform(
+            spatial_transform=torch.nn.Sequential(
+                K.RandomHorizontalFlip(p=config.transformation.horizontal_flip_prob),
+                K.RandomVerticalFlip(p=config.transformation.vertical_flip_prob),
+            )
+        ),
+    )
+
+
+def build_val_transformer(config: Config) -> torch.nn.Module:
+    return _build_transformer(config, torch.nn.Identity())
+
 
 def build_model(config: Config) -> torch.nn.Module:
     model = smp.UnetPlusPlus(
@@ -72,16 +99,16 @@ def build_model(config: Config) -> torch.nn.Module:
         encoder_weights=config.model.encoder_weights,
         classes=config.dataset.num_classes,
     )
-    
+
     in_channels = model.segmentation_head[0].in_channels
-    
-    model.segmentation_head = torch.nn.Sequential( # type: ignore
-        EfficientChannelAttention(channels=in_channels), # type: ignore
-        CoordinateAttention(channels=in_channels), # type: ignore
+
+    model.segmentation_head = torch.nn.Sequential(  # type: ignore
+        EfficientChannelAttention(channels=in_channels),  # type: ignore
+        CoordinateAttention(channels=in_channels),  # type: ignore
         torch.nn.Dropout2d(p=config.regularization.dropout),
-        model.segmentation_head
+        model.segmentation_head,
     )
-    
+
     return model
 
 
@@ -89,5 +116,13 @@ def build_criterion(config: Config) -> torch.nn.Module:
     return CombinedLoss(alpha=config.criterion.loss_alpha, mode="multiclass")
 
 
+def build_loss_regularizer(config: Config):
+    return L1Regularizer(config.criterion.l1_lambda)
+
+
 def build_optimizer(config: Config, model: torch.nn.Module) -> torch.optim.Optimizer:
-    return torch.optim.AdamW(model.parameters(), lr=config.optimizer.learning_rate, weight_decay=config.optimizer.weight_decay)
+    return torch.optim.AdamW(
+        model.parameters(),
+        lr=config.optimizer.learning_rate,
+        weight_decay=config.optimizer.weight_decay,
+    )
