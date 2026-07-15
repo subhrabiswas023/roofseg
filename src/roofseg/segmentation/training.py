@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable, Iterator, Self, override
+from typing import Self, override
 
 import torch
 from torch import nn, optim

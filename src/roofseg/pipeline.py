@@ -1,6 +1,7 @@
 from typing import Callable
 
 import torch
+from torch import nn
 from torch.utils.data import DataLoader
 
 from roofseg import factories
@@ -18,12 +19,12 @@ def run_training_pipeline[C: Config](
     environment_setter: Callable[[C], torch.device] = factories.setup_environment,
     train_loader_factory: Callable[[C], DataLoader[PairedTensor]] = factories.build_train_loader,
     val_loader_factory: Callable[[C], DataLoader[PairedTensor]] = factories.build_val_loader,
-    train_transformer_factory: Callable[[C], torch.nn.Module] = factories.build_train_transformer,
-    val_transformer_factory: Callable[[C], torch.nn.Module] = factories.build_val_transformer,
-    model_factory: Callable[[C], torch.nn.Module] = factories.build_model,
-    criterion_factory: Callable[[C], torch.nn.Module] = factories.build_criterion,
-    loss_regurlarizer_factory: Callable[[C], torch.nn.Module] = factories.build_loss_regularizer,
-    optimizer_factory: Callable[[C, torch.nn.Module], torch.optim.Optimizer] = factories.build_optimizer,
+    train_transformer_factory: Callable[[C], nn.Module] = factories.build_train_transformer,
+    val_transformer_factory: Callable[[C], nn.Module] = factories.build_val_transformer,
+    model_factory: Callable[[C], nn.Module] = factories.build_model,
+    criterion_factory: Callable[[C], nn.Module] = factories.build_criterion,
+    loss_regurlarizer_factory: Callable[[C], nn.Module] = factories.build_loss_regularizer,
+    optimizer_factory: Callable[[C, nn.Module], torch.optim.Optimizer] = factories.build_optimizer,
 ) -> None:
     tracker = tracker_factory()
     restorer = restorer_factory()

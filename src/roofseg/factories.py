@@ -5,21 +5,23 @@ import kornia.augmentation as K
 import numpy as np
 import segmentation_models_pytorch as smp
 import torch
+from torch import nn
+from torch import optim
 from torch.utils.data import DataLoader
 
 from roofseg.common.training import Phase
-from roofseg.segmentation.config import Config
-from roofseg.segmentation.data import PatchedDataset
-from roofseg.segmentation.losses import CombinedLoss, L1Regularizer
 from roofseg.segmentation.attentions import (
     CoordinateAttention,
     EfficientChannelAttention,
 )
-from roofseg.segmentation.tracking import LocalTracker, LocalRestorer, PathContext
+from roofseg.segmentation.config import Config
+from roofseg.segmentation.data import PatchedDataset
+from roofseg.segmentation.losses import CombinedLoss, L1Regularizer
+from roofseg.segmentation.tracking import LocalRestorer, LocalTracker, PathContext
 from roofseg.segmentation.transforms import (
+    ImageTransform,
     ScaleImage,
     SyncedImageMaskTransform,
-    ImageTransform,
 )
 from roofseg.segmentation.typing import PairedTensor
 
@@ -65,8 +67,8 @@ build_val_loader = partial(_build_loader, phase=Phase.VAL)
 
 
 def _build_transformer(
-    config: Config, synced_image_mask_tranform: torch.nn.Module
-) -> torch.nn.Module:
+    config: Config, synced_image_mask_tranform: nn.Module
+) -> nn.Module:
     return ImageTransform(
         ScaleImage(),
         synced_image_mask_tranform,
@@ -77,11 +79,11 @@ def _build_transformer(
     )
 
 
-def build_train_transformer(config: Config) -> torch.nn.Module:
+def build_train_transformer(config: Config) -> nn.Module:
     return _build_transformer(
         config,
         SyncedImageMaskTransform(
-            spatial_transform=torch.nn.Sequential(
+            spatial_transform=nn.Sequential(
                 K.RandomHorizontalFlip(p=config.transformation.horizontal_flip_prob),
                 K.RandomVerticalFlip(p=config.transformation.vertical_flip_prob),
             )
@@ -89,11 +91,11 @@ def build_train_transformer(config: Config) -> torch.nn.Module:
     )
 
 
-def build_val_transformer(config: Config) -> torch.nn.Module:
-    return _build_transformer(config, torch.nn.Identity())
+def build_val_transformer(config: Config) -> nn.Module:
+    return _build_transformer(config, nn.Identity())
 
 
-def build_model(config: Config) -> torch.nn.Module:
+def build_model(config: Config) -> nn.Module:
     model = smp.UnetPlusPlus(
         config.model.encoder_name,
         encoder_weights=config.model.encoder_weights,
@@ -102,17 +104,17 @@ def build_model(config: Config) -> torch.nn.Module:
 
     in_channels = model.segmentation_head[0].in_channels
 
-    model.segmentation_head = torch.nn.Sequential(  # type: ignore
+    model.segmentation_head = nn.Sequential(  # type: ignore
         EfficientChannelAttention(channels=in_channels),  # type: ignore
         CoordinateAttention(channels=in_channels),  # type: ignore
-        torch.nn.Dropout2d(p=config.regularization.dropout),
+        nn.Dropout2d(p=config.regularization.dropout),
         model.segmentation_head,
     )
 
     return model
 
 
-def build_criterion(config: Config) -> torch.nn.Module:
+def build_criterion(config: Config) -> nn.Module:
     return CombinedLoss(alpha=config.criterion.loss_alpha, mode="multiclass")
 
 
@@ -120,8 +122,8 @@ def build_loss_regularizer(config: Config):
     return L1Regularizer(config.criterion.l1_lambda)
 
 
-def build_optimizer(config: Config, model: torch.nn.Module) -> torch.optim.Optimizer:
-    return torch.optim.AdamW(
+def build_optimizer(config: Config, model: nn.Module) -> optim.Optimizer:
+    return optim.AdamW(
         model.parameters(),
         lr=config.optimizer.learning_rate,
         weight_decay=config.optimizer.weight_decay,

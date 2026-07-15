@@ -1,11 +1,12 @@
 from typing import override
 
 import torch
+from torch import nn
 
 from roofseg.segmentation.typing import BatchedImageTensor, PairedBatchedTensor
 
 
-class ScaleImage(torch.nn.Module):
+class ScaleImage(nn.Module):
     def __init__(self, factor: float = 255):
         super().__init__()
         self.factor = factor
@@ -15,10 +16,10 @@ class ScaleImage(torch.nn.Module):
         return input / self.factor
 
 
-class SyncedImageMaskTransform(torch.nn.Module):
+class SyncedImageMaskTransform(nn.Module):
     """Stacks image and mask tensor for performing random augmentation together, then returns the final image and mask"""
 
-    def __init__(self, spatial_transform: torch.nn.Module):
+    def __init__(self, spatial_transform: nn.Module):
         super().__init__()
         self.spatial_transform = spatial_transform
 
@@ -40,12 +41,12 @@ class SyncedImageMaskTransform(torch.nn.Module):
         return image, mask
 
 
-class ImageTransform(torch.nn.Module):
+class ImageTransform(nn.Module):
     def __init__(
         self,
-        scale_image: torch.nn.Module,
-        synced_image_mask_transform: torch.nn.Module,
-        normalize: torch.nn.Module,
+        scale_image: nn.Module,
+        synced_image_mask_transform: nn.Module,
+        normalize: nn.Module,
     ):
         super().__init__()
         self.scale_image = scale_image
