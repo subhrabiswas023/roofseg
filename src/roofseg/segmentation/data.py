@@ -50,7 +50,7 @@ class PatchedDataset(Dataset[PairedTensor]):
         image = self._load_image(image_path)
         mask = self._load_mask(mask_path)
 
-        image = (image / 255.0).astype(np.float32)
+        image = image.astype(np.float32)
         mask = (mask > self.color_threshold).astype(np.int64)
 
         image = patchify(image, self.patch_size, row_idx, col_idx)
