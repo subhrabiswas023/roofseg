@@ -11,10 +11,10 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 from roofseg.common.data import get_indices, patchify
-from roofseg.segmentation.typing import ImageArray, MaskArray, PairedTensor
+from roofseg.segmentation.typing import ImageArray, MaskArray, PairedArray, PairedTensor
 
 
-class PatchedDataset(Dataset[PairedTensor]):
+class PatchedDataset(Dataset[PairedArray]):
     def __init__(
         self,
         image_paths: Sequence[Path],
@@ -39,7 +39,7 @@ class PatchedDataset(Dataset[PairedTensor]):
         return self.total_patches
 
     @override
-    def __getitem__(self, idx: int) -> PairedTensor:
+    def __getitem__(self, idx: int) -> PairedArray:
         image_idx, row_idx, col_idx = get_indices(
             idx, self.patches_per_image, self.patches_per_row
         )
@@ -55,12 +55,7 @@ class PatchedDataset(Dataset[PairedTensor]):
 
         image = patchify(image, self.patch_size, row_idx, col_idx)
         mask = patchify(mask, self.patch_size, row_idx, col_idx)
-
-        image = torch.tensor(image, dtype=torch.float)
-        mask = torch.tensor(mask, dtype=torch.long)
-
-        image = image.permute(2, 0, 1)  # Convert (H, W, C) to (C, H, W) format
-
+        
         return image, mask
 
     @lru_cache(maxsize=1)
@@ -76,3 +71,25 @@ class PatchedDataset(Dataset[PairedTensor]):
             mask = msk.convert("L")
         mask = np.array(mask, dtype=np.int64)
         return mask
+
+class TensorDataset(Dataset[PairedTensor]):
+    def __init__(self, dataset: Dataset[PairedArray]):
+        self.dataset = dataset
+    
+    @override
+    def __getitem__(self, idx: int) -> PairedTensor:
+        image, mask = self.dataset[idx]
+        
+        image, mask = to_tensor((image, mask))
+
+        return image, mask
+    
+def to_tensor(pair: PairedArray) -> PairedTensor:
+    image, mask = pair
+    
+    image = torch.tensor(image, dtype=torch.float)
+    mask = torch.tensor(mask, dtype=torch.long)
+
+    image = image.permute(2, 0, 1)  # Convert (H, W, C) to (C, H, W) format
+    
+    return image, mask

@@ -15,7 +15,7 @@ from roofseg.segmentation.attentions import (
     EfficientChannelAttention,
 )
 from roofseg.segmentation.config import Config
-from roofseg.segmentation.data import PatchedDataset
+from roofseg.segmentation.data import PatchedDataset, TensorDataset
 from roofseg.segmentation.losses import CombinedLoss, L1Regularizer
 from roofseg.segmentation.tracking import LocalRestorer, LocalTracker, PathContext
 from roofseg.segmentation.transforms import (
@@ -47,15 +47,17 @@ def _build_loader(config: Config, phase: Phase) -> DataLoader[PairedTensor]:
     image_dir = phase_path / config.dataset.image_dir
     mask_dir = phase_path / config.dataset.mask_dir
 
+    patched_dataset = PatchedDataset(
+        image_paths=list(image_dir.iterdir()),
+        get_mask_path_from_image_path=lambda p: mask_dir / p.name,
+        image_width=config.dataset.image_width,
+        image_height=config.dataset.image_height,
+        color_threshold=config.dataset.color_threshold,
+        patch_size=config.dataset.patch_size,
+    )
+    
     return DataLoader(
-        PatchedDataset(
-            image_paths=list(image_dir.iterdir()),
-            get_mask_path_from_image_path=lambda p: mask_dir / p.name,
-            image_width=config.dataset.image_width,
-            image_height=config.dataset.image_height,
-            color_threshold=config.dataset.color_threshold,
-            patch_size=config.dataset.patch_size,
-        ),
+        TensorDataset(patched_dataset),
         batch_size=config.training.batch_size,
         shuffle=phase == Phase.TRAIN,
         pin_memory=(config.environment.device == "cuda"),

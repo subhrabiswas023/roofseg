@@ -5,6 +5,8 @@ from jaxtyping import Float, Int
 ImageArray = np.ndarray[tuple[int, int, int], np.dtype[np.float32]]
 MaskArray = np.ndarray[tuple[int, int], np.dtype[np.int64]]
 
+PairedArray = tuple[ImageArray, MaskArray]
+
 C = "channel"
 H = "height"
 W = "width"
